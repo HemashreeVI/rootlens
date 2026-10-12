@@ -1,0 +1,40 @@
+
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "8001:8000"
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "8002:8000"
+    environment:
+      USER_SERVICE_URL: http://user-service:8000
+      DATABASE_PATH: /data/incidents.db
+    volumes:
+      - rootlens-data:/data
+    depends_on:
+      - user-service
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - user-service
+      - order-service
+
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+
+volumes:
+  rootlens-data:
