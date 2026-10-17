@@ -1,384 +1,204 @@
-![CI](https://github.com/HemashreeVI/RootLens/actions/workflows/ci.yml/badge.svg)
+<p align="center">
+  <img src="logo.svg" alt="RootLens logo" width="150" />
+</p>
 
-<div align="center">
+<p align="center">
+  <img src="banner.svg" alt="RootLens: production reliability, with a human in the loop" width="100%" />
+</p>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2563eb,50:7c3aed,100:ea580c&height=200&section=header&text=RootLens&fontSize=70&fontColor=ffffff&fontAlignY=38&desc=Observe%20the%20failure.%20Understand%20the%20cause.%20Verify%20the%20recovery.&descSize=16&descAlignY=60" alt="RootLens banner"/>
+<p align="center">
+  <a href="https://github.com/HemashreeVI/RootLens/actions/workflows/ci.yml"><img src="https://github.com/HemashreeVI/RootLens/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <img src="https://img.shields.io/badge/python-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
+  <img src="https://img.shields.io/badge/prometheus-metrics-E6522C?logo=prometheus&logoColor=white" alt="Prometheus" />
+  <img src="https://img.shields.io/badge/grafana-dashboards-F46800?logo=grafana&logoColor=white" alt="Grafana" />
+  <img src="https://img.shields.io/badge/status-in%20development-f59e0b" alt="Status" />
+</p>
 
-### 🔎 AI-Powered Production Incident Root-Cause & Change-Risk Analysis Platform
+<p align="center">
+  <b>RootLens watches a small microservice app, works out why it broke, and fixes it only within strict limits.</b>
+</p>
 
-**From production failures to evidence-backed root-cause analysis.**
+---
 
+## What it does
 
-<br/>
+When a service fails, RootLens follows the same steps an on-call engineer would:
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
-![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+1. **Detect** the failure from live metrics.
+2. **Collect evidence** (error rates, latency, which dependency is down or slow, recent deployments).
+3. **Rank root causes** with a confidence level, instead of guessing one answer.
+4. **Estimate impact** across the services that depend on the broken one.
+5. **Pick an approved fix** (rollback or restart) through a restricted controller.
+6. **Verify recovery**, and record every decision.
+7. **Escalate to a human** when the evidence is not strong enough.
 
-![Status](https://img.shields.io/badge/status-in%20development-7c3aed?style=flat-square)
-![Stage](https://img.shields.io/badge/stage-observability%20foundation-2563eb?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-7%20of%2016%20done-047857?style=flat-square)
-![Made with love](https://img.shields.io/badge/made%20with-curiosity-ea580c?style=flat-square)
+> The last two stages (policy engine and controller) are being built next. Everything from detection to ranked root causes, plus the release and rollback mechanics, already works. See the [roadmap](#roadmap).
 
-<br/>
+## Architecture
 
-[**Overview**](#-overview) •
-[**Problem**](#-the-problem) •
-[**Features**](#-features) •
-[**Architecture**](#%EF%B8%8F-architecture) •
-[**Quick Start**](#-quick-start) •
-[**Demo**](#-try-it-simulate-an-incident) •
-[**Roadmap**](#%EF%B8%8F-roadmap)
+<p align="center">
+  <img src="architecture.svg" alt="RootLens architecture diagram" width="100%" />
+</p>
 
-</div>
+| Component | Port | Role |
+|---|---|---|
+| `user-service` | 8001 | FastAPI. Chaos switches for errors and latency. Release `v2` has a planted 4 s latency bug. |
+| `order-service` | 8002 | FastAPI. Calls user then payment (3 s timeout each). Also hosts incidents, deployments, the investigator and the dashboard. |
+| `payment-service` | 8003 | FastAPI. Same pattern. Release `v2` has a planted 50% error bug. |
+| `detector` | none | Polls Prometheus every 10 s. Opens an incident after 3 checks at or above 0.3 failure ratio, resolves after 3 checks below 0.1. |
+| `prometheus` | 9090 | Scrapes all three services every 5 s. |
+| `grafana` | 3000 | "RootLens Observability Dashboard". |
+| SQLite | volume | `/data/incidents.db` in the `rootlens-data` volume. Holds incidents and deployments. |
 
-<br/>
+## How the investigator decides
 
-## 💡 Overview
+For every dependency that is failing, the investigator scores three possible causes and reports them ranked, with the evidence for and against each.
 
-**RootLens** is a production reliability and incident investigation platform that helps engineers understand not only *what failed*, but also ***why* it failed**.
-
-Traditional monitoring tools show metrics and alerts. RootLens connects **observability data**, **service dependencies**, **incident history**, and **deployment changes** to:
-
-| | |
+| Cause | Main signals |
 |---|---|
-| 🎯 **Identify** | likely root causes |
-| 🧾 **Explain** | the supporting evidence |
-| 💥 **Assess** | potential downstream impact |
-| 🛟 **Recommend** | safe recovery actions |
+| **Down** | The `up` metric is 0, no metrics reported, most failures are "unreachable". |
+| **Returning errors** | Service is up, its own error ratio is high, most failures are errors, p95 latency is normal. |
+| **Too slow** | Service is up, most failures are timeouts, p95 latency is close to the caller's timeout. |
 
-> [!NOTE]
-> RootLens is being built incrementally, starting with a containerized microservice environment and progressing toward evidence-driven, AI-assisted incident analysis.
+From Order's point of view, a dead dependency and a slow one both look like timeouts. The `up` metric is what tells them apart.
 
-<br/>
+Confidence is **high** when the top score is at least 0.75 and leads the runner-up by 0.3 or more, **medium** when the top score is at least 0.5, and **low** otherwise. Below 0.4 the answer is "insufficient evidence". The output also names the root-cause service and the services it impacts.
 
-## 🎯 The Problem
-
-When a production service fails, engineers often have to investigate several sources independently:
-
-| Signal | What engineers hunt for |
-|:---:|---|
-| 📉 | Metrics and abnormal request patterns |
-| 📋 | Application errors and incident history |
-| 🔗 | Dependencies between microservices |
-| 🚀 | Recent deployments and configuration changes |
-| ⚠️ | Potential impact on downstream services |
-
-**RootLens brings these signals together into a single investigation workflow.**
-
-<br/>
-
-## ✨ Features
-
-### ✅ Implemented
-
-| | Feature | Description |
-|:---:|---|---|
-| 🧩 | **Microservice environment** | Separate User Service and Order Service built with FastAPI |
-| 💚 | **Health monitoring** | Health endpoints for checking service availability |
-| 💣 | **Failure simulation** | Intentionally trigger a User Service failure to test incident investigation |
-| 📈 | **Prometheus metrics** | Application request counters exposed through `/metrics` |
-| 🛰️ | **Centralized collection** | Prometheus scrapes metrics from both microservices |
-| 📊 | **Grafana integration** | Grafana running with a Prometheus data source configured |
-| 💾 | **Incident persistence** | Incident records stored in SQLite on a persistent Docker volume |
-| 🧠 | **Rule-based investigation** | Recorded incidents analyzed with predefined rules for a preliminary root-cause assessment |
-| 🐳 | **Docker Compose** | Services and monitoring components run together with one command |
-
-### 🚧 Planned
-
-<details>
-<summary><b>Click to expand the planned feature set</b></summary>
-
-<br/>
-
-- 🔭 OpenTelemetry-based distributed tracing and richer telemetry correlation
-- 🤖 Automated anomaly detection using statistical and machine-learning techniques
-- 🕸️ Service dependency graphs and blast-radius analysis
-- 🔀 Correlation of incidents with deployment and configuration changes
-- 💬 LLM-assisted root-cause explanations grounded in collected evidence
-- 🧮 Change-risk scoring for proposed fixes and deployments
-- 🛡️ Policy-controlled remediation with allowlisted actions
-- ✔️ Post-remediation health checks and recovery verification
-- 📜 Audit logs, escalation workflows, and Kubernetes integration
-
-</details>
-
-> [!IMPORTANT]
-> **Design principle:** *Evidence before conclusions. Safe, verifiable actions before automated remediation.*
-
-<br/>
-
-## 🏗️ Architecture
+## Incident lifecycle
 
 ```mermaid
-flowchart TD
-    A[Client Requests] --> B[User Service]
-    A --> C[Order Service]
-
-    C -->|Dependency Checks| B
-    C --> D[(SQLite Incident Database)]
-
-    B -->|Application Metrics| E[Prometheus]
-    C -->|Application Metrics| E
-
-    E --> F[Grafana Dashboard]
-
-    D --> G[Rule-Based Investigator]
-    G --> H[Incident Assessment]
-
-    H -. Future Integration .-> I[AI-Assisted RCA]
-    I -. Future Integration .-> J[Risk Analysis and Safe Remediation]
-
-    classDef services fill:#2563eb,color:#ffffff,stroke:#1d4ed8
-    classDef monitoring fill:#ea580c,color:#ffffff,stroke:#c2410c
-    classDef analysis fill:#7c3aed,color:#ffffff,stroke:#6d28d9
-    classDef storage fill:#047857,color:#ffffff,stroke:#065f46
-
-    class B,C services
-    class E,F monitoring
-    class G,H,I,J analysis
-    class D storage
+stateDiagram-v2
+    [*] --> Healthy
+    Healthy --> Open: 3 checks at or above 0.3
+    Open --> Investigated: evidence stored, causes ranked
+    Investigated --> Resolved: 3 checks below 0.1
+    Resolved --> Healthy
+    Open --> Open: same fingerprint, no duplicate
 ```
 
-<sub>Solid lines show the current core architecture; dashed lines show planned extensions.</sub>
+## Quick start
 
-<br/>
+You need Docker Desktop (WSL2), Git, Python 3 and PowerShell.
 
-## 🛠️ Technology Stack
-
-| Category | Technologies |
-|:---|:---|
-| 🐍 **Language** | Python |
-| ⚡ **API framework** | FastAPI |
-| 🧩 **Microservices** | User Service, Order Service |
-| 🐳 **Containerization** | Docker, Docker Compose |
-| 📈 **Metrics collection** | Prometheus |
-| 📊 **Visualization** | Grafana |
-| 💾 **Incident storage** | SQLite |
-| 🌐 **HTTP communication** | HTTPX |
-| 🔭 **Planned observability** | OpenTelemetry |
-| 🧠 **Planned analysis** | Statistical ML, graph analysis, LLM-assisted reasoning |
-| ☸️ **Planned orchestration** | Kubernetes |
-
-<br/>
-
-## 📁 Project Structure
-
-```text
-RootLens/
-├── 📄 compose.yaml
-├── 📄 README.md
-├── 📄 .gitignore
-│
-├── 👤 user-service/
-│   ├── Dockerfile
-│   ├── app.py
-│   └── requirements.txt
-│
-├── 🛒 order-service/
-│   ├── Dockerfile
-│   ├── app.py
-│   ├── database.py
-│   ├── investigator.py
-│   └── requirements.txt
-│
-└── 📈 prometheus/
-    └── prometheus.yml
-```
-
-<br/>
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Git](https://git-scm.com/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) with the Docker engine running
-- A modern web browser
-
-### 1️⃣ Clone the repository
-
-```bash
+```powershell
 git clone https://github.com/HemashreeVI/RootLens.git
 cd RootLens
-```
-
-### 2️⃣ Start the platform
-
-```bash
-docker compose up --build -d
-```
-
-Docker builds the application images and starts the microservices, Prometheus, and Grafana.
-
-### 3️⃣ Verify running containers
-
-```bash
+docker compose up -d
 docker compose ps
 ```
 
-### 4️⃣ Open the services
+You should see 6 containers running. Then open:
 
-| Component | URL |
-|:---|:---|
-| 👤 User Service | http://localhost:8001 |
-| 💚 User Service Health | http://localhost:8001/health |
-| 📈 User Service Metrics | http://localhost:8001/metrics |
-| 🛒 Order Service | http://localhost:8002 |
-| 💚 Order Service Health | http://localhost:8002/health |
-| 🔗 Dependency Check | http://localhost:8002/check-user-service |
-| 📋 Incident History | http://localhost:8002/incidents |
-| 📈 Order Service Metrics | http://localhost:8002/metrics |
-| 🔥 Prometheus | http://localhost:9090 |
-| 🎯 Prometheus Targets | http://localhost:9090/targets |
-| 📊 Grafana | http://localhost:3000 |
+| What | URL |
+|---|---|
+| Live incident dashboard | http://localhost:8002/dashboard |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
 
-> [!TIP]
-> Grafana dashboards may require additional configuration.
+> Never run `docker compose down -v`. It deletes the incident database volume.
 
-<br/>
+## Try it: the failure lab
 
-## 🧪 Try It: Simulate an Incident
+Use three terminals from the project root.
 
-RootLens includes a controlled endpoint for simulating a User Service failure. Follow the flow below:
+```powershell
+# Terminal 1: watch the detector
+docker compose logs -f detector
 
-```mermaid
-flowchart LR
-    S1["1 · Trigger failure"] --> S2["2 · Check metrics"] --> S3["3 · Inspect Prometheus"] --> S4["4 · Investigate"]
+# Terminal 2: send fake customer traffic (about 5 requests per second)
+python .\traffic.py
 
-    classDef step fill:#7c3aed,color:#ffffff,stroke:#6d28d9
-    class S1,S2,S3,S4 step
+# Terminal 3: break something
+Invoke-RestMethod -Method Post "http://localhost:8003/chaos/errors?rate=0.5"
 ```
 
-#### 💣 Step 1 — Trigger a simulated failure
+Watch the dashboard. An incident opens after about 30 seconds. Then reset:
 
-```text
-http://localhost:8001/simulate-failure
+```powershell
+Invoke-RestMethod -Method Post "http://localhost:8003/chaos/reset"
 ```
 
-The endpoint intentionally returns an HTTP `503 Service Unavailable` response.
+The detector log prints `RESOLVE incident` once traffic has been healthy for 3 checks. Wait about a minute before the next test so the 1-minute metrics window clears.
 
-#### 📈 Step 2 — Check application metrics
+## Try it: bad release and rollback
 
-```text
-http://localhost:8001/metrics
+Each service reads `SERVICE_VERSION` and exposes `/version`. Only `v2` contains a bug.
+
+```powershell
+.\deploy.ps1 payment-service v2   # bad release: 50% errors, incident opens
+.\deploy.ps1 payment-service v1   # rollback: incident resolves
 ```
 
-Look for the custom request counter:
+`deploy.ps1` updates `.env`, recreates only that container, waits for `/version`, then records the deployment through `POST /deployments`. If PowerShell blocks the script:
 
-```text
-rootlens_user_requests_total
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy.ps1 payment-service v2
 ```
 
-#### 🔥 Step 3 — Inspect Prometheus
+## Tests and CI
 
-```text
-http://localhost:9090/targets
+```powershell
+python .\order-service\test_investigator.py
 ```
 
-Confirm that the User Service and Order Service targets are **up**. You can also query the metric:
+Eight tests cover errors, slowness and outages for both dependencies, the older flat evidence format, and both dependencies failing at once. GitHub Actions runs two jobs on every push: `test` runs the unit tests, and `build` validates the compose file and builds every image.
 
-```promql
-rootlens_user_requests_total
+## Project layout
+
+```
+RootLens/
+├── assets/                  logo and animated diagrams used by this README
+├── user-service/            FastAPI service with chaos switches
+├── payment-service/         FastAPI service with chaos switches
+├── order-service/
+│   ├── app.py               API, incidents, deployments
+│   ├── database.py          SQLite access
+│   ├── investigator.py      root-cause ranking
+│   ├── dashboard.py         live HTML dashboard
+│   └── test_investigator.py unit tests
+├── detector/                polls Prometheus, opens and resolves incidents
+├── prometheus/prometheus.yml
+├── compose.yaml
+├── traffic.py               fake customers
+├── deploy.ps1               versioned deploy and rollback
+└── .github/workflows/ci.yml
 ```
 
-#### 🕵️ Step 4 — Investigate the incident
+## Roadmap
 
-Check the incident history:
+- [x] Three FastAPI services with Docker Compose
+- [x] Prometheus and Grafana
+- [x] Incident database with open and resolve lifecycle
+- [x] Failure lab (chaos switches)
+- [x] Continuous detector with evidence collection
+- [x] Multi-service root-cause ranking with blast radius
+- [x] Live dashboard
+- [x] Unit tests and GitHub Actions CI
+- [x] Versioned releases, `deploy.ps1`, deployment records
+- [ ] Change correlation: flag a "bad release" cause when a failure starts soon after a deploy
+- [ ] Policy engine: a unit-tested rule set that decides rollback, restart, or escalate
+- [ ] Remediation controller: dry-run first, then enforce
+- [ ] Dashboard: per-dependency evidence, deployments, escalations, audit log
+- [ ] Later: LLM-written explanations grounded in evidence, OpenTelemetry traces, PostgreSQL, API authentication, Grafana persistence, Kubernetes, a latency-based detector, an experiment results table
 
-```text
-http://localhost:8002/incidents
-```
+## Safety design
 
-Use the incident ID returned by the API to investigate the recorded incident:
+The controller will need Docker access, which is powerful. These limits keep it contained:
 
-```text
-http://localhost:8002/investigate/YOUR_INCIDENT_ID
-```
+- **Allowlist:** only `rollback_deployment` and `restart_service`, on `user-service` and `payment-service`.
+- **Rate limits:** at most 2 actions per incident, 60 s apart, and 3 per service per hour.
+- **Dry-run first:** the controller can be switched between `off`, `dry-run` and `enforce`.
+- **Verify, then trust:** after acting, it checks that the failure ratio really dropped, and escalates if not.
+- **Audit log:** every decision is recorded, including "chose not to act".
+- **Human escalation:** medium or low confidence, or more than one dependency failing, means no action.
 
-> [!NOTE]
-> The current investigator uses predefined rules to produce a preliminary assessment. More advanced evidence correlation and automated root-cause analysis are planned.
+## Honest notes
 
-<br/>
+- The rollback is real release mechanics, but the bug in `v2` is deliberately planted. This is a simulated release pipeline on one machine.
+- `POST /deployments` is not authenticated yet.
+- Slowness that stays under the 3 s timeout is not detected yet.
 
-## 🔐 Reliability & Safety Principles
+## Author
 
-RootLens is designed around these principles:
-
-| | Principle | What it means |
-|:---:|---|---|
-| 🧾 | **Evidence-based reasoning** | Findings should be supported by observable signals |
-| 🎚️ | **Confidence-aware analysis** | Uncertain conclusions are flagged rather than presented as facts |
-| 🔑 | **Least privilege** | Automated actions get only the permissions they need |
-| 📜 | **Policy-controlled remediation** | Only explicitly permitted actions are eligible for execution |
-| ✔️ | **Recovery verification** | A fix is not successful until service health is checked |
-| 🔍 | **Auditability** | Investigations and remediation decisions are traceable |
-| 🙋 | **Human escalation** | Uncertain or high-risk situations are escalated, not handled recklessly |
-
-<br/>
-
-## 🗺️ Roadmap
-
-![Progress](https://img.shields.io/badge/progress-44%25-047857?style=for-the-badge)
-
-```text
-[██████████████░░░░░░░░░░░░░░░░░░]  7 of 16 milestones complete
-```
-
-**Foundation** ✅
-
-- [x] Build the initial FastAPI microservices
-- [x] Containerize services using Docker
-- [x] Expose custom Prometheus metrics
-- [x] Configure Prometheus scraping
-- [x] Connect Grafana to Prometheus
-- [x] Persist incident records in SQLite
-- [x] Implement preliminary rule-based investigation
-
-**Next up** 🚧
-
-- [ ] Complete the Grafana observability dashboard
-- [ ] Integrate OpenTelemetry tracing
-- [ ] Correlate metrics, traces, logs, and incidents
-- [ ] Build service dependency and blast-radius analysis
-- [ ] Implement anomaly detection
-- [ ] Add evidence-grounded AI root-cause explanations
-- [ ] Introduce change-risk assessment
-- [ ] Implement policy-controlled remediation and recovery verification
-- [ ] Extend deployment to Kubernetes
-
-<br/>
-
-## 📊 Current Status
-
-| | |
-|:---|:---|
-| **Stage** | Observability foundation and preliminary incident investigation |
-| **Working today** | Containerized environment, application metrics, persistent incident storage, rule-based incident assessment |
-| **In development** | AI-assisted root-cause analysis and safe-remediation workflow |
-
-<br/>
-
-## 👩‍💻 Author
-
-<div align="center">
-
-**Hemashree V. I.**
-
-B.Tech — Computer Science and Engineering, Cyber-Physical Systems
-VIT Chennai
-
-[![GitHub](https://img.shields.io/badge/GitHub-@HemashreeVI-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/HemashreeVI)
-
-<br/>
-
-⭐ *If you find RootLens interesting, consider giving it a star!* ⭐
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:ea580c,50:7c3aed,100:2563eb&height=120&section=footer" alt="footer"/>
-
-**RootLens — Observe the failure. Understand the cause. Verify the recovery.**
-
-</div>
+Built by **Hemashree** ([@HemashreeVI](https://github.com/HemashreeVI)) as a hands-on project in production reliability and AI-assisted operations.
