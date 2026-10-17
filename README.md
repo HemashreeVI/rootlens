@@ -1,3 +1,5 @@
+![CI](https://github.com/HemashreeVI/RootLens/actions/workflows/ci.yml/badge.svg)
+
 <div align="center">
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:2563eb,50:7c3aed,100:ea580c&height=200&section=header&text=RootLens&fontSize=70&fontColor=ffffff&fontAlignY=38&desc=Observe%20the%20failure.%20Understand%20the%20cause.%20Verify%20the%20recovery.&descSize=16&descAlignY=60" alt="RootLens banner"/>
@@ -5,6 +7,7 @@
 ### 🔎 AI-Powered Production Incident Root-Cause & Change-Risk Analysis Platform
 
 **From production failures to evidence-backed root-cause analysis.**
+
 
 <br/>
 
