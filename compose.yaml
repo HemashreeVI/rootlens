@@ -5,17 +5,28 @@ services:
     ports:
       - "8001:8000"
 
+  detector:
+    build: ./detector
+    depends_on:
+      - user-service
+      - payment-service
   order-service:
     build: ./order-service
     ports:
       - "8002:8000"
     environment:
       USER_SERVICE_URL: http://user-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
       DATABASE_PATH: /data/incidents.db
     volumes:
       - rootlens-data:/data
     depends_on:
       - user-service
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "8003:8000"
 
   prometheus:
     image: prom/prometheus

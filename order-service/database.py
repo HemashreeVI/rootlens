@@ -1,4 +1,4 @@
-
+import json
 import os
 import sqlite3
 
@@ -6,6 +6,16 @@ DATABASE_NAME = os.getenv(
     "DATABASE_PATH",
     "incidents.db"
 )
+
+# Columns added after the original table was created.
+# Older databases get these through ALTER TABLE below.
+NEW_COLUMNS = {
+    "endpoint": "TEXT",
+    "status": "TEXT NOT NULL DEFAULT 'open'",
+    "fingerprint": "TEXT",
+    "resolved_at": "TEXT",
+    "evidence_json": "TEXT",
+}
 
 
 def get_connection():
@@ -31,18 +41,19 @@ def initialize_database():
         )
     """)
 
-    # Add the endpoint column to older databases if needed.
-    columns = {
+    # Add any missing columns to older databases.
+    existing = {
         row[1]
         for row in connection.execute(
             "PRAGMA table_info(incidents)"
         ).fetchall()
     }
 
-    if "endpoint" not in columns:
-        connection.execute(
-            "ALTER TABLE incidents ADD COLUMN endpoint TEXT"
-        )
+    for name, definition in NEW_COLUMNS.items():
+        if name not in existing:
+            connection.execute(
+                f"ALTER TABLE incidents ADD COLUMN {name} {definition}"
+            )
 
     connection.commit()
     connection.close()
@@ -58,16 +69,18 @@ def save_incident(incident):
             service,
             http_status,
             message,
-            endpoint
+            endpoint,
+            fingerprint
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (
         incident["incident_id"],
         incident["detected_at"],
         incident["service"],
         incident.get("http_status"),
         incident["message"],
-        incident.get("endpoint")
+        incident.get("endpoint"),
+        incident.get("fingerprint")
     ))
 
     connection.commit()
@@ -88,3 +101,47 @@ def get_incidents():
     connection.close()
 
     return incidents
+
+
+def find_open_incident(fingerprint):
+    """Return the newest open incident with this fingerprint, or None."""
+    connection = get_connection()
+    connection.row_factory = sqlite3.Row
+
+    row = connection.execute("""
+        SELECT *
+        FROM incidents
+        WHERE fingerprint = ? AND status = 'open'
+        ORDER BY detected_at DESC
+        LIMIT 1
+    """, (fingerprint,)).fetchone()
+
+    connection.close()
+
+    return dict(row) if row else None
+
+
+def update_incident_status(incident_id, status, resolved_at=None):
+    connection = get_connection()
+
+    connection.execute("""
+        UPDATE incidents
+        SET status = ?, resolved_at = ?
+        WHERE incident_id = ?
+    """, (status, resolved_at, incident_id))
+
+    connection.commit()
+    connection.close()
+
+
+def save_evidence(incident_id, evidence):
+    connection = get_connection()
+
+    connection.execute("""
+        UPDATE incidents
+        SET evidence_json = ?
+        WHERE incident_id = ?
+    """, (json.dumps(evidence), incident_id))
+
+    connection.commit()
+    connection.close()
