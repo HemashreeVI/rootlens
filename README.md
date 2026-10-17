@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="RootLens logo" width="150" />
+  <img src="logo.svg" alt="RootLens logo" width="150" />
 </p>
 
 <p align="center">
-  <img src="assets/banner.svg" alt="RootLens: production reliability, with a human in the loop" width="100%" />
+  <img src="banner.svg" alt="RootLens: production reliability, with a human in the loop" width="100%" />
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@ When a service fails, RootLens follows the same steps an on-call engineer would:
 ## Architecture
 
 <p align="center">
-  <img src="assets/architecture.svg" alt="RootLens architecture diagram" width="100%" />
+  <img src="architecture.svg" alt="RootLens architecture diagram" width="100%" />
 </p>
 
 | Component | Port | Role |
