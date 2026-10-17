@@ -148,6 +148,17 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     var html = '<div class="cause-line">' + esc(d.likely_cause) +
       ' <span class="badge ' + esc(d.confidence) + '">' + esc(d.confidence) + " confidence</span></div>";
 
+    if (d.trigger) {
+      html += '<div class="meta" style="margin-top:8px">Likely trigger: ' +
+        esc(d.trigger.service) + ' ' + esc(d.trigger.version) +
+        ' was deployed ' + esc(d.trigger.seconds_before_detection) +
+        's before detection (' + esc(d.trigger.strength) + ' correlation).</div>';
+    }
+    if (d.recommended_next_step) {
+      html += '<div class="meta" style="margin-top:6px"><b>Next step:</b> ' +
+        esc(d.recommended_next_step) + '</div>';
+    }
+
     var ranked = d.ranked_causes || [];
     if (ranked.length) {
       html += '<div style="margin-top:14px">';

@@ -23,7 +23,30 @@ def dep(up, own_error_ratio, timeout=0.0, error=0.0, unreachable=0.0):
     }
 
 
+def deploy(service, version, previous, seconds):
+    return {
+        "service": service,
+        "version": version,
+        "previous_version": previous,
+        "deployed_at": "2026-10-17T10:00:00+00:00",
+        "seconds_before_detection": seconds,
+    }
+
+
 HEALTHY = dep(1.0, 0.0)
+
+
+def payment_errors_evidence(deployments=None):
+    evidence = {
+        "order_p95_latency_seconds": 0.05,
+        "dependencies": {
+            "user-service": HEALTHY,
+            "payment-service": dep(1.0, 0.5, error=1.0),
+        },
+    }
+    if deployments is not None:
+        evidence["recent_deployments"] = deployments
+    return evidence
 
 
 def test_user_errors():
@@ -65,13 +88,7 @@ def test_user_down():
 
 
 def test_payment_errors():
-    r = run({
-        "order_p95_latency_seconds": 0.05,
-        "dependencies": {
-            "user-service": HEALTHY,
-            "payment-service": dep(1.0, 0.5, error=1.0),
-        },
-    })
+    r = run(payment_errors_evidence())
     assert r["likely_cause"] == "payment-service is returning errors"
     assert r["confidence"] == "high"
     assert r["root_cause_service"] == "payment-service"
@@ -124,11 +141,48 @@ def test_both_dependencies_failing():
     assert r["notes"]
 
 
+def test_recent_release_is_strong_trigger_with_rollback():
+    r = run(payment_errors_evidence([deploy("payment-service", "v2", "v1", 60)]))
+    assert r["likely_cause"] == "payment-service is returning errors"
+    assert r["confidence"] == "high"
+    assert r["trigger"]["version"] == "v2"
+    assert r["trigger"]["strength"] == "strong"
+    assert "Roll back payment-service from v2 to v1" in r["recommended_next_step"]
+
+
+def test_old_release_is_only_a_weak_trigger():
+    r = run(payment_errors_evidence([deploy("payment-service", "v2", "v1", 1500)]))
+    assert r["trigger"]["strength"] == "weak"
+    assert r["notes"]
+
+
+def test_release_of_a_different_service_is_not_blamed():
+    r = run(payment_errors_evidence([deploy("user-service", "v2", "v1", 60)]))
+    assert r["trigger"] is None
+    assert any("user-service was deployed" in fact for fact in r["observed_facts"])
+
+
+def test_release_without_previous_version_cannot_roll_back():
+    r = run(payment_errors_evidence([deploy("payment-service", "v2", "none", 60)]))
+    assert r["trigger"]["strength"] == "strong"
+    assert "nothing to roll back to" in r["recommended_next_step"]
+
+
+def test_no_deployments_means_no_trigger():
+    r = run(payment_errors_evidence([]))
+    assert r["trigger"] is None
+
+
 if __name__ == "__main__":
     tests = [
         test_user_errors, test_user_slow, test_user_down,
         test_payment_errors, test_payment_slow, test_payment_down,
         test_old_evidence_format_still_works, test_both_dependencies_failing,
+        test_recent_release_is_strong_trigger_with_rollback,
+        test_old_release_is_only_a_weak_trigger,
+        test_release_of_a_different_service_is_not_blamed,
+        test_release_without_previous_version_cannot_roll_back,
+        test_no_deployments_means_no_trigger,
     ]
     for test in tests:
         test()

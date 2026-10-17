@@ -13,6 +13,9 @@ RECOVERY_THRESHOLD = 0.1   # failure fraction that counts as "healthy again"
 BREACHES_TO_OPEN = 3       # bad checks in a row before opening an incident
 OKS_TO_RESOLVE = 3         # healthy checks in a row before resolving
 
+# Deployments older than this are not included as evidence.
+RECENT_DEPLOY_WINDOW_SECONDS = 1800
+
 FINGERPRINT = "order-service:error_ratio"
 
 # The failure fraction of Order requests: this is what triggers incidents.
@@ -104,12 +107,36 @@ def collect_dependency(name, info):
     }
 
 
+def collect_recent_deployments(now):
+    """Ask the Order Service which releases happened recently."""
+    response = httpx.get(f"{ORDER_SERVICE_URL}/deployments", timeout=5.0)
+
+    recent = []
+    for item in response.json()["deployments"]:
+        deployed_at = datetime.fromisoformat(item["deployed_at"])
+        age = (now - deployed_at).total_seconds()
+
+        if 0 <= age <= RECENT_DEPLOY_WINDOW_SECONDS:
+            recent.append({
+                "service": item["service"],
+                "version": item["version"],
+                "previous_version": item.get("previous_version"),
+                "deployed_at": item["deployed_at"],
+                "seconds_before_detection": round(age),
+            })
+
+    return recent
+
+
 def collect_evidence(ratio):
     """Gather facts about the whole system at the moment of the incident."""
+    now = datetime.now(timezone.utc)
+
     evidence = {
-        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "collected_at": now.isoformat(),
         "order_failure_ratio": ratio,
         "dependencies": {},
+        "recent_deployments": [],
     }
 
     try:
@@ -128,6 +155,11 @@ def collect_evidence(ratio):
             evidence["dependencies"][name] = collect_dependency(name, info)
         except Exception as error:
             evidence["dependencies"][name] = {"collection_error": str(error)}
+
+    try:
+        evidence["recent_deployments"] = collect_recent_deployments(now)
+    except Exception as error:
+        evidence["deployments_error"] = str(error)
 
     return evidence
 

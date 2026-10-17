@@ -8,6 +8,10 @@ DEPENDENCY_GRAPH = {
     "order-service": ["user-service", "payment-service"],
 }
 
+# How close a deployment must be to the incident to count as a strong link.
+STRONG_SECONDS = 300
+MODERATE_SECONDS = 900
+
 
 def _load_evidence(incident):
     """Read the saved evidence (stored as JSON text). Returns {} if none."""
@@ -51,6 +55,73 @@ def _failure_split(info):
     return timeouts, errors, timeouts + errors
 
 
+def _age_text(seconds):
+    seconds = int(seconds)
+    if seconds < 90:
+        return f"{seconds} seconds"
+    return f"{seconds // 60} min {seconds % 60} s"
+
+
+def _trigger_strength(seconds):
+    if seconds <= STRONG_SECONDS:
+        return "strong"
+    if seconds <= MODERATE_SECONDS:
+        return "moderate"
+    return "weak"
+
+
+def _find_trigger(evidence, service):
+    """The most recent deployment of this service, if any, with its strength."""
+    candidates = [
+        d for d in (evidence.get("recent_deployments") or [])
+        if d.get("service") == service
+    ]
+
+    if not candidates:
+        return None
+
+    latest = min(
+        candidates,
+        key=lambda d: d.get("seconds_before_detection", 10 ** 9)
+    )
+    seconds = latest.get("seconds_before_detection", 0)
+
+    return {
+        "service": latest.get("service"),
+        "version": latest.get("version"),
+        "previous_version": latest.get("previous_version"),
+        "deployed_at": latest.get("deployed_at"),
+        "seconds_before_detection": seconds,
+        "strength": _trigger_strength(seconds),
+    }
+
+
+def _next_step(trigger):
+    default = (
+        "Review the ranked causes. Automated remediation is not "
+        "implemented yet."
+    )
+
+    if not trigger:
+        return default
+
+    previous = trigger.get("previous_version")
+    age = _age_text(trigger["seconds_before_detection"])
+
+    if previous and previous != "none":
+        return (
+            f"Roll back {trigger['service']} from {trigger['version']} to "
+            f"{previous}: it was deployed {age} before the failures were "
+            "detected. Automated remediation is not implemented yet."
+        )
+
+    return (
+        f"{trigger['service']} {trigger['version']} was deployed {age} "
+        "before detection, but no earlier version is recorded, so there is "
+        "nothing to roll back to. Investigate manually."
+    )
+
+
 def _describe_facts(evidence):
     """Turn the raw numbers into plain-English observations."""
     facts = []
@@ -84,6 +155,14 @@ def _describe_facts(evidence):
     p95 = evidence.get("order_p95_latency_seconds")
     if p95 is not None:
         facts.append(f"Order requests: 95th percentile latency is {p95:.2f}s.")
+
+    for d in evidence.get("recent_deployments") or []:
+        facts.append(
+            f"{d.get('service')} was deployed as {d.get('version')} "
+            f"(from {d.get('previous_version')}) "
+            f"{_age_text(d.get('seconds_before_detection', 0))} "
+            "before the incident was detected."
+        )
 
     return facts
 
@@ -260,6 +339,7 @@ def _legacy_investigation(incident):
         "ranked_causes": [],
         "likely_cause": likely_cause,
         "confidence": confidence,
+        "trigger": None,
         "recommended_next_step": (
             "Inspect service logs and verify recovery before attempting remediation."
         ),
@@ -274,6 +354,7 @@ def investigate_incident(incident):
 
     ranked = _score_causes(evidence)
     notes = []
+    trigger = None
 
     if not ranked or ranked[0]["score"] < 0.4:
         likely_cause = "Insufficient evidence to name a cause."
@@ -292,6 +373,15 @@ def investigate_incident(incident):
                     f"{root_service} and {second['service']}."
                 )
 
+        trigger = _find_trigger(evidence, root_service)
+
+        if trigger and trigger["strength"] == "weak":
+            notes.append(
+                f"{trigger['service']} {trigger['version']} was deployed "
+                f"{_age_text(trigger['seconds_before_detection'])} before "
+                "detection; the timing is only a weak link to this failure."
+            )
+
     return {
         "incident_id": incident.get("incident_id"),
         "affected_service": incident.get("service", "unknown"),
@@ -302,9 +392,7 @@ def investigate_incident(incident):
         "confidence": confidence,
         "root_cause_service": root_service,
         "impacted_services": _impacted_services(root_service) if root_service else [],
+        "trigger": trigger,
         "notes": notes,
-        "recommended_next_step": (
-            "Review the ranked causes. Automated remediation is not "
-            "implemented yet."
-        ),
+        "recommended_next_step": _next_step(trigger),
     }
