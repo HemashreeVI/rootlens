@@ -1,15 +1,17 @@
-
 services:
   user-service:
     build: ./user-service
     ports:
       - "8001:8000"
+    environment:
+      SERVICE_VERSION: ${USER_SERVICE_VERSION:-v1}
 
   detector:
     build: ./detector
     depends_on:
-      - user-service
-      - payment-service
+      - prometheus
+      - order-service
+
   order-service:
     build: ./order-service
     ports:
@@ -22,11 +24,14 @@ services:
       - rootlens-data:/data
     depends_on:
       - user-service
+      - payment-service
 
   payment-service:
     build: ./payment-service
     ports:
       - "8003:8000"
+    environment:
+      SERVICE_VERSION: ${PAYMENT_SERVICE_VERSION:-v1}
 
   prometheus:
     image: prom/prometheus
@@ -38,14 +43,12 @@ services:
       - user-service
       - order-service
 
-
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
     depends_on:
       - prometheus
-
 
 volumes:
   rootlens-data:

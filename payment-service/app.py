@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 
 from fastapi import FastAPI, Query
@@ -6,6 +7,14 @@ from fastapi.responses import JSONResponse, Response
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 
 app = FastAPI(title="RootLens Payment Service")
+
+SERVICE_NAME = "payment-service"
+VERSION = os.getenv("SERVICE_VERSION", "v1")
+
+# Planted bugs: what each release does wrong. v1 is healthy.
+BUGS = {
+    "v2": {"error_rate": 0.5},
+}
 
 REQUEST_COUNT = Counter(
     "rootlens_payment_requests_total",
@@ -31,12 +40,21 @@ def health():
     return {"status": "healthy"}
 
 
+@app.get("/version")
+def version():
+    return {"service": SERVICE_NAME, "version": VERSION}
+
+
 @app.get("/pay/{order_id}")
 async def pay(order_id: int):
-    if chaos["latency_seconds"] > 0:
-        await asyncio.sleep(chaos["latency_seconds"])
+    bug = BUGS.get(VERSION, {})
+    latency = max(chaos["latency_seconds"], bug.get("latency_seconds", 0.0))
+    error_rate = max(chaos["error_rate"], bug.get("error_rate", 0.0))
 
-    if random.random() < chaos["error_rate"]:
+    if latency > 0:
+        await asyncio.sleep(latency)
+
+    if random.random() < error_rate:
         REQUEST_COUNT.labels(
             endpoint="/pay/{order_id}", method="GET", status="503"
         ).inc()

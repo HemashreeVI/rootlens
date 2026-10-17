@@ -22,7 +22,9 @@ from database import (
     get_incidents,
     find_open_incident,
     update_incident_status,
-    save_evidence
+    save_evidence,
+    save_deployment,
+    get_deployments
 )
 from investigator import investigate_incident
 
@@ -315,6 +317,38 @@ def resolve_incident(request: ResolveRequest):
     )
 
     return {"resolved": True, "incident_id": existing["incident_id"]}
+
+
+class DeploymentRecord(BaseModel):
+    service: str
+    version: str
+    previous_version: Optional[str] = None
+    deployed_by: Optional[str] = "unknown"
+
+
+@app.post("/deployments")
+def record_deployment(record: DeploymentRecord):
+    deployment = {
+        "deployment_id": str(uuid4()),
+        "deployed_at": datetime.now(timezone.utc).isoformat(),
+        "service": record.service,
+        "version": record.version,
+        "previous_version": record.previous_version,
+        "deployed_by": record.deployed_by
+    }
+    save_deployment(deployment)
+
+    return deployment
+
+
+@app.get("/deployments")
+def list_deployments():
+    deployments = get_deployments()
+
+    return {
+        "total_deployments": len(deployments),
+        "deployments": deployments
+    }
 
 
 @app.get("/investigate/{incident_id}")

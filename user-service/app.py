@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 
 from fastapi import FastAPI, Query
@@ -6,6 +7,14 @@ from fastapi.responses import JSONResponse, Response
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 
 app = FastAPI(title="RootLens User Service")
+
+SERVICE_NAME = "user-service"
+VERSION = os.getenv("SERVICE_VERSION", "v1")
+
+# Planted bugs: what each release does wrong. v1 is healthy.
+BUGS = {
+    "v2": {"latency_seconds": 4.0},
+}
 
 REQUEST_COUNT = Counter(
     "rootlens_user_requests_total",
@@ -15,8 +24,8 @@ REQUEST_COUNT = Counter(
 
 # Current failure-injection settings (the "failure lab").
 chaos = {
-    "error_rate": 0.0,       # fraction of /users requests that fail (0 to 1)
-    "latency_seconds": 0.0,  # delay added to every /users request
+    "error_rate": 0.0,
+    "latency_seconds": 0.0,
 }
 
 
@@ -28,18 +37,25 @@ def home():
 
 @app.get("/health")
 def health():
-    # Stays healthy during injected failures, like many real services
-    # whose health check passes while real requests are failing.
     REQUEST_COUNT.labels(endpoint="/health", method="GET", status="200").inc()
     return {"status": "healthy"}
 
 
+@app.get("/version")
+def version():
+    return {"service": SERVICE_NAME, "version": VERSION}
+
+
 @app.get("/users/{user_id}")
 async def get_user(user_id: int):
-    if chaos["latency_seconds"] > 0:
-        await asyncio.sleep(chaos["latency_seconds"])
+    bug = BUGS.get(VERSION, {})
+    latency = max(chaos["latency_seconds"], bug.get("latency_seconds", 0.0))
+    error_rate = max(chaos["error_rate"], bug.get("error_rate", 0.0))
 
-    if random.random() < chaos["error_rate"]:
+    if latency > 0:
+        await asyncio.sleep(latency)
+
+    if random.random() < error_rate:
         REQUEST_COUNT.labels(
             endpoint="/users/{user_id}", method="GET", status="503"
         ).inc()

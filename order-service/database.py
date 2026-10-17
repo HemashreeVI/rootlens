@@ -55,6 +55,17 @@ def initialize_database():
                 f"ALTER TABLE incidents ADD COLUMN {name} {definition}"
             )
 
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS deployments (
+            deployment_id TEXT PRIMARY KEY,
+            deployed_at TEXT NOT NULL,
+            service TEXT NOT NULL,
+            version TEXT NOT NULL,
+            previous_version TEXT,
+            deployed_by TEXT
+        )
+    """)
+
     connection.commit()
     connection.close()
 
@@ -145,3 +156,46 @@ def save_evidence(incident_id, evidence):
 
     connection.commit()
     connection.close()
+
+
+def save_deployment(deployment):
+    connection = get_connection()
+
+    connection.execute("""
+        INSERT INTO deployments (
+            deployment_id,
+            deployed_at,
+            service,
+            version,
+            previous_version,
+            deployed_by
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        deployment["deployment_id"],
+        deployment["deployed_at"],
+        deployment["service"],
+        deployment["version"],
+        deployment.get("previous_version"),
+        deployment.get("deployed_by")
+    ))
+
+    connection.commit()
+    connection.close()
+
+
+def get_deployments(limit=50):
+    connection = get_connection()
+    connection.row_factory = sqlite3.Row
+
+    rows = connection.execute("""
+        SELECT *
+        FROM deployments
+        ORDER BY deployed_at DESC
+        LIMIT ?
+    """, (limit,)).fetchall()
+
+    deployments = [dict(row) for row in rows]
+    connection.close()
+
+    return deployments
