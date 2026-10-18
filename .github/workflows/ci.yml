@@ -17,6 +17,10 @@ jobs:
         run: python order-service/test_investigator.py
       - name: Run policy tests
         run: python controller/test_policy.py
+      - name: Run notification tests
+        run: |
+          pip install httpx
+          python controller/test_notify.py
 
   build:
     runs-on: ubuntu-latest

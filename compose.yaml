@@ -17,6 +17,11 @@ services:
     environment:
       CONTROLLER_MODE: ${CONTROLLER_MODE:-dry-run}
       ORDER_SERVICE_URL: http://order-service:8000
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      NOTIFY_CHAT_DEFAULT: ${NOTIFY_CHAT_DEFAULT:-}
+      NOTIFY_CHAT_USER_SERVICE: ${NOTIFY_CHAT_USER_SERVICE:-}
+      NOTIFY_CHAT_PAYMENT_SERVICE: ${NOTIFY_CHAT_PAYMENT_SERVICE:-}
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:8002/dashboard}
     depends_on:
       - order-service
 
