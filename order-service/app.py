@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from pydantic import BaseModel
 from typing import Optional
-from dashboard import DASHBOARD_HTML
+from dashboard import DASHBOARD_HTML, build_overview
 
 from database import (
     initialize_database,
@@ -24,7 +24,9 @@ from database import (
     update_incident_status,
     save_evidence,
     save_deployment,
-    get_deployments
+    get_deployments,
+    save_audit,
+    get_audit
 )
 from investigator import investigate_incident
 
@@ -79,6 +81,10 @@ def home():
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard():
     return DASHBOARD_HTML
+
+@app.get("/api/overview")
+async def api_overview():
+    return await build_overview(USER_SERVICE_URL, PAYMENT_SERVICE_URL)
 
 
 @app.get("/health")
@@ -348,6 +354,45 @@ def list_deployments():
     return {
         "total_deployments": len(deployments),
         "deployments": deployments
+    }
+
+class AuditEntry(BaseModel):
+    incident_id: Optional[str] = None
+    mode: str
+    decision: str
+    action: Optional[str] = None
+    service: Optional[str] = None
+    target_version: Optional[str] = None
+    reason: Optional[str] = None
+    outcome: Optional[str] = None
+
+
+@app.post("/audit")
+def record_audit(entry: AuditEntry):
+    record = {
+        "audit_id": str(uuid4()),
+        "logged_at": datetime.now(timezone.utc).isoformat(),
+        "incident_id": entry.incident_id,
+        "mode": entry.mode,
+        "decision": entry.decision,
+        "action": entry.action,
+        "service": entry.service,
+        "target_version": entry.target_version,
+        "reason": entry.reason,
+        "outcome": entry.outcome
+    }
+    save_audit(record)
+
+    return record
+
+
+@app.get("/audit")
+def list_audit(incident_id: Optional[str] = None, limit: int = 100):
+    entries = get_audit(incident_id, limit)
+
+    return {
+        "total_entries": len(entries),
+        "entries": entries
     }
 
 

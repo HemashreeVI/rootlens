@@ -173,17 +173,24 @@ def test_no_deployments_means_no_trigger():
     assert r["trigger"] is None
 
 
+def test_a_rollback_is_not_rolled_back_again():
+    r = run(payment_errors_evidence([deploy("payment-service", "v1", "v2", 60)]))
+    assert r["trigger"]["kind"] == "rollback"
+    assert "do not roll back again" in r["recommended_next_step"]
+    assert "Roll back payment-service from" not in r["recommended_next_step"]
+
+
+def test_normal_release_trigger_is_marked_as_release():
+    r = run(payment_errors_evidence([deploy("payment-service", "v2", "v1", 60)]))
+    assert r["trigger"]["kind"] == "release"
+
+
 if __name__ == "__main__":
     tests = [
-        test_user_errors, test_user_slow, test_user_down,
-        test_payment_errors, test_payment_slow, test_payment_down,
-        test_old_evidence_format_still_works, test_both_dependencies_failing,
-        test_recent_release_is_strong_trigger_with_rollback,
-        test_old_release_is_only_a_weak_trigger,
-        test_release_of_a_different_service_is_not_blamed,
-        test_release_without_previous_version_cannot_roll_back,
-        test_no_deployments_means_no_trigger,
+        value for name, value in sorted(globals().items())
+        if name.startswith("test_") and callable(value)
     ]
     for test in tests:
         test()
         print(f"PASS  {test.__name__}")
+    print(f"{len(tests)} tests passed.")

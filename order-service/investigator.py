@@ -70,6 +70,11 @@ def _trigger_strength(seconds):
     return "weak"
 
 
+def _version_number(version):
+    digits = "".join(ch for ch in str(version or "") if ch.isdigit())
+    return int(digits) if digits else None
+
+
 def _find_trigger(evidence, service):
     """The most recent deployment of this service, if any, with its strength."""
     candidates = [
@@ -86,6 +91,12 @@ def _find_trigger(evidence, service):
     )
     seconds = latest.get("seconds_before_detection", 0)
 
+    current = _version_number(latest.get("version"))
+    previous = _version_number(latest.get("previous_version"))
+    is_rollback = (
+        current is not None and previous is not None and current < previous
+    )
+
     return {
         "service": latest.get("service"),
         "version": latest.get("version"),
@@ -93,6 +104,7 @@ def _find_trigger(evidence, service):
         "deployed_at": latest.get("deployed_at"),
         "seconds_before_detection": seconds,
         "strength": _trigger_strength(seconds),
+        "kind": "rollback" if is_rollback else "release",
     }
 
 
@@ -108,6 +120,14 @@ def _next_step(trigger):
     previous = trigger.get("previous_version")
     age = _age_text(trigger["seconds_before_detection"])
 
+    if trigger.get("kind") == "rollback":
+        return (
+            f"{trigger['service']} was rolled back from {previous} to "
+            f"{trigger['version']} {age} before detection, so a new release "
+            "does not explain this failure. Investigate manually and do not "
+            "roll back again."
+        )
+
     if previous and previous != "none":
         return (
             f"Roll back {trigger['service']} from {trigger['version']} to "
@@ -120,7 +140,6 @@ def _next_step(trigger):
         "before detection, but no earlier version is recorded, so there is "
         "nothing to roll back to. Investigate manually."
     )
-
 
 def _describe_facts(evidence):
     """Turn the raw numbers into plain-English observations."""

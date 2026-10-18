@@ -66,6 +66,21 @@ def initialize_database():
         )
     """)
 
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS audit_log (
+            audit_id TEXT PRIMARY KEY,
+            logged_at TEXT NOT NULL,
+            incident_id TEXT,
+            mode TEXT NOT NULL,
+            decision TEXT NOT NULL,
+            action TEXT,
+            service TEXT,
+            target_version TEXT,
+            reason TEXT,
+            outcome TEXT
+        )
+    """)
+
     connection.commit()
     connection.close()
 
@@ -199,3 +214,63 @@ def get_deployments(limit=50):
     connection.close()
 
     return deployments
+
+
+def save_audit(entry):
+    connection = get_connection()
+
+    connection.execute("""
+        INSERT INTO audit_log (
+            audit_id,
+            logged_at,
+            incident_id,
+            mode,
+            decision,
+            action,
+            service,
+            target_version,
+            reason,
+            outcome
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        entry["audit_id"],
+        entry["logged_at"],
+        entry.get("incident_id"),
+        entry["mode"],
+        entry["decision"],
+        entry.get("action"),
+        entry.get("service"),
+        entry.get("target_version"),
+        entry.get("reason"),
+        entry.get("outcome")
+    ))
+
+    connection.commit()
+    connection.close()
+
+
+def get_audit(incident_id=None, limit=100):
+    connection = get_connection()
+    connection.row_factory = sqlite3.Row
+
+    if incident_id:
+        rows = connection.execute("""
+            SELECT *
+            FROM audit_log
+            WHERE incident_id = ?
+            ORDER BY logged_at DESC
+            LIMIT ?
+        """, (incident_id, limit)).fetchall()
+    else:
+        rows = connection.execute("""
+            SELECT *
+            FROM audit_log
+            ORDER BY logged_at DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+
+    entries = [dict(row) for row in rows]
+    connection.close()
+
+    return entries

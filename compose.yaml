@@ -12,6 +12,14 @@ services:
       - prometheus
       - order-service
 
+  controller:
+    build: ./controller
+    environment:
+      CONTROLLER_MODE: ${CONTROLLER_MODE:-dry-run}
+      ORDER_SERVICE_URL: http://order-service:8000
+    depends_on:
+      - order-service
+
   order-service:
     build: ./order-service
     ports:
