@@ -22,6 +22,13 @@ services:
       NOTIFY_CHAT_USER_SERVICE: ${NOTIFY_CHAT_USER_SERVICE:-}
       NOTIFY_CHAT_PAYMENT_SERVICE: ${NOTIFY_CHAT_PAYMENT_SERVICE:-}
       DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:8002/dashboard}
+      PROJECT_DIR: /project
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-rootlens}
+    volumes:
+      # Lets the executor ask Docker to recreate or restart a service.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The project folder, so it can read compose.yaml and update .env.
+      - ./:/project
     depends_on:
       - order-service
 
