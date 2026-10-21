@@ -2,3 +2,7 @@ fastapi
 uvicorn
 httpx
 prometheus-client
+opentelemetry-distro==0.66b1
+opentelemetry-exporter-otlp==1.45.1
+opentelemetry-instrumentation-fastapi==0.66b1
+opentelemetry-instrumentation-httpx==0.66b1

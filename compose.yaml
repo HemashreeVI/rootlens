@@ -1,3 +1,12 @@
+# Tracing settings shared by the three shop services (see "x-tracing" below).
+x-tracing: &tracing
+  OTEL_TRACES_EXPORTER: otlp
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+  OTEL_METRICS_EXPORTER: none
+  OTEL_LOGS_EXPORTER: none
+  # Don't trace the dashboard's and robot's polling, only real customer traffic.
+  OTEL_PYTHON_EXCLUDED_URLS: "/metrics,/health,/version,/api/,/incidents,/deployments,/audit,/investigate,/dashboard"
+
 services:
   user-service:
     build: ./user-service
@@ -5,6 +14,8 @@ services:
       - "8001:8000"
     environment:
       SERVICE_VERSION: ${USER_SERVICE_VERSION:-v1}
+      OTEL_SERVICE_NAME: user-service
+      <<: *tracing
 
   detector:
     build: ./detector
@@ -40,6 +51,8 @@ services:
       USER_SERVICE_URL: http://user-service:8000
       PAYMENT_SERVICE_URL: http://payment-service:8000
       DATABASE_PATH: /data/incidents.db
+      OTEL_SERVICE_NAME: order-service
+      <<: *tracing
     volumes:
       - rootlens-data:/data
     depends_on:
@@ -52,6 +65,8 @@ services:
       - "8003:8000"
     environment:
       SERVICE_VERSION: ${PAYMENT_SERVICE_VERSION:-v1}
+      OTEL_SERVICE_NAME: payment-service
+      <<: *tracing
 
   prometheus:
     image: prom/prometheus
@@ -62,6 +77,12 @@ services:
     depends_on:
       - user-service
       - order-service
+
+  # Collects traces and shows them at http://localhost:16686
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    ports:
+      - "16686:16686"
 
   grafana:
     image: grafana/grafana
