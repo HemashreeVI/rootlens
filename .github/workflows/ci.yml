@@ -23,6 +23,8 @@ jobs:
         run: |
           pip install httpx
           python controller/test_executor.py
+      - name: Run controller tests
+        run: python controller/test_controller.py
       - name: Run notification tests
         run: |
           pip install httpx

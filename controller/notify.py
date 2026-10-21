@@ -115,6 +115,10 @@ def build_message(kind, info):
         lines.append(f"\u23F0 Still open after {info.get('duration', 'a while')}: {cause}")
     elif kind == "resolved":
         lines.append(f"\u2705 Resolved after {info.get('duration', '?')}: {cause}")
+    elif kind == "acted":
+        lines.append(f"\U0001F6E0 RootLens acted: {cause}")
+    elif kind == "fix_failed":
+        lines.append(f"\u26A0\uFE0F Fix did not work: {cause}")
     else:
         lines.append(f"RootLens: {cause}")
 
@@ -132,6 +136,14 @@ def build_message(kind, info):
         elif info.get("robot"):
             lines.append(f"Robot ({info.get('mode', '?')}): {info['robot']}")
 
+        if kind == "acted" and info.get("result"):
+            lines.append(f"Result: {info['result']}")
+
+        if kind == "fix_failed":
+            if info.get("reason"):
+                lines.append(f"Check: {info['reason']}")
+            lines.append("The robot will try the next step, or hand over to a human.")
+
     if info.get("dashboard_url"):
         lines.append(f"Dashboard: {info['dashboard_url']}")
 
@@ -142,6 +154,7 @@ def plan_notice(entry, decision_kind, age_seconds, now):
     """Which message, if any, should go out for an active incident?
 
     Returns None, "opened", "needs_human", "reminder", or "mute".
+    ("acted" and "fix_failed" are sent directly by the controller.)
     """
     if entry.get("muted"):
         return None

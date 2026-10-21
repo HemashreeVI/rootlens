@@ -82,6 +82,25 @@ def test_resolved_message_is_short():
     assert "Confidence" not in text
 
 
+def test_acted_message_shows_the_result():
+    text = notify.build_message("acted", info(
+        mode="enforce", robot="roll back payment-service to v1",
+        result="Executed: rolled back payment-service from v2 to v1",
+    ))
+    assert "RootLens acted: payment-service is returning errors" in text
+    assert "Robot (enforce): roll back payment-service to v1" in text
+    assert "Result: Executed: rolled back payment-service from v2 to v1" in text
+
+
+def test_fix_failed_message_says_what_happens_next():
+    text = notify.build_message("fix_failed", info(
+        mode="enforce", reason="The failure ratio was still 48% after 120s.",
+    ))
+    assert "Fix did not work" in text
+    assert "Check: The failure ratio was still 48% after 120s." in text
+    assert "try the next step" in text
+
+
 def test_unassigned_owner():
     text = notify.build_message("opened", info(service=None))
     assert "Owner: unassigned" in text

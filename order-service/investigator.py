@@ -109,10 +109,7 @@ def _find_trigger(evidence, service):
 
 
 def _next_step(trigger):
-    default = (
-        "Review the ranked causes. Automated remediation is not "
-        "implemented yet."
-    )
+    default = "Review the ranked causes and the service logs."
 
     if not trigger:
         return default
@@ -132,7 +129,7 @@ def _next_step(trigger):
         return (
             f"Roll back {trigger['service']} from {trigger['version']} to "
             f"{previous}: it was deployed {age} before the failures were "
-            "detected. Automated remediation is not implemented yet."
+            "detected. In enforce mode RootLens does this automatically."
         )
 
     return (
