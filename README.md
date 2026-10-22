@@ -21,6 +21,12 @@
   <b>RootLens watches a small microservice app, works out why it broke, and fixes it only within strict limits.</b>
 </p>
 
+<p align="center">
+  <a href="docs/launch-video.mp4"><img src="docs/launch-video.jpg" alt="Watch the 20-second RootLens launch video" width="82%" /></a>
+  <br />
+  <sub>▶ <a href="docs/launch-video.mp4"><b>Watch the 20-second launch video</b></a> (opens in GitHub's video player)</sub>
+</p>
+
 ---
 
 ## What it does
