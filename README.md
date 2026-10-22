@@ -12,7 +12,9 @@
   <img src="https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
   <img src="https://img.shields.io/badge/prometheus-metrics-E6522C?logo=prometheus&logoColor=white" alt="Prometheus" />
   <img src="https://img.shields.io/badge/grafana-dashboards-F46800?logo=grafana&logoColor=white" alt="Grafana" />
-  <img src="https://img.shields.io/badge/status-in%20development-f59e0b" alt="Status" />
+  <img src="https://img.shields.io/badge/opentelemetry-traces-425CC7?logo=opentelemetry&logoColor=white" alt="OpenTelemetry" />
+  <img src="https://img.shields.io/badge/tests-118%20passing-2E9B63" alt="118 tests" />
+  <img src="https://img.shields.io/badge/status-working%20end%20to%20end-2E9B63" alt="Status" />
 </p>
 
 <p align="center">
@@ -26,14 +28,14 @@
 When a service fails, RootLens follows the same steps an on-call engineer would:
 
 1. **Detect** the failure from live metrics.
-2. **Collect evidence** (error rates, latency, which dependency is down or slow, recent deployments).
+2. **Collect evidence** (error rates, latency, which dependency is down or slow, and whether a release went out just before).
 3. **Rank root causes** with a confidence level, instead of guessing one answer.
 4. **Estimate impact** across the services that depend on the broken one.
 5. **Pick an approved fix** (rollback or restart) through a restricted controller.
 6. **Verify recovery**, and record every decision.
 7. **Escalate to a human** when the evidence is not strong enough.
 
-> The last two stages (policy engine and controller) are being built next. Everything from detection to ranked root causes, plus the release and rollback mechanics, already works. See the [roadmap](#roadmap).
+> Every stage works end to end. In a live enforce-mode test, RootLens detected a bad `payment-service` release, traced it to that deploy, rolled it back on its own, and confirmed the failures stopped.
 
 ## Architecture
 
@@ -47,9 +49,11 @@ When a service fails, RootLens follows the same steps an on-call engineer would:
 | `order-service` | 8002 | FastAPI. Calls user then payment (3 s timeout each). Also hosts incidents, deployments, the investigator and the dashboard. |
 | `payment-service` | 8003 | FastAPI. Same pattern. Release `v2` has a planted 50% error bug. |
 | `detector` | none | Polls Prometheus every 10 s. Opens an incident after 3 checks at or above 0.3 failure ratio, resolves after 3 checks below 0.1. |
+| `controller` | none | The "robot". Reads each open incident, asks the rulebook what to do, and in enforce mode acts, verifies and records. Sends Telegram notices to the service owner. |
 | `prometheus` | 9090 | Scrapes all three services every 5 s. |
 | `grafana` | 3000 | "RootLens Observability Dashboard". |
-| SQLite | volume | `/data/incidents.db` in the `rootlens-data` volume. Holds incidents and deployments. |
+| `jaeger` | 16686 | Distributed tracing. The three services send OpenTelemetry traces, so one slow order can be followed across every service. |
+| SQLite | volume | `/data/incidents.db` in the `rootlens-data` volume. Holds incidents, deployments and the audit log. |
 
 ## How the investigator decides
 
@@ -63,6 +67,8 @@ For every dependency that is failing, the investigator scores three possible cau
 
 From Order's point of view, a dead dependency and a slow one both look like timeouts. The `up` metric is what tells them apart.
 
+**Bad releases:** if the failing service was deployed shortly before the failures started, the investigator links the incident to that release and names the earlier version to go back to.
+
 Confidence is **high** when the top score is at least 0.75 and leads the runner-up by 0.3 or more, **medium** when the top score is at least 0.5, and **low** otherwise. Below 0.4 the answer is "insufficient evidence". The output also names the root-cause service and the services it impacts.
 
 ## Incident lifecycle
@@ -72,6 +78,10 @@ stateDiagram-v2
     [*] --> Healthy
     Healthy --> Open: 3 checks at or above 0.3
     Open --> Investigated: evidence stored, causes ranked
+    Investigated --> Escalated: weak evidence or not allowed
+    Investigated --> Acting: policy says rollback or restart
+    Acting --> Resolved: verified, 3 checks below 0.1
+    Acting --> Escalated: did not recover
     Investigated --> Resolved: 3 checks below 0.1
     Resolved --> Healthy
     Open --> Open: same fingerprint, no duplicate
@@ -88,13 +98,14 @@ docker compose up -d
 docker compose ps
 ```
 
-You should see 6 containers running. Then open:
+You should see 8 containers running. Then open:
 
 | What | URL |
 |---|---|
 | Live incident dashboard | http://localhost:8002/dashboard |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
+| Jaeger (traces) | http://localhost:16686 |
 
 > Never run `docker compose down -v`. It deletes the incident database volume.
 
@@ -136,19 +147,36 @@ Each service reads `SERVICE_VERSION` and exposes `/version`. Only `v2` contains 
 powershell -ExecutionPolicy Bypass -File .\deploy.ps1 payment-service v2
 ```
 
+## Try it: let the robot fix it
+
+The controller starts in `dry-run`: it decides and records, but never acts. To let it act, set the mode and recreate it:
+
+```powershell
+# in .env
+CONTROLLER_MODE=enforce
+
+docker compose up -d controller
+.\deploy.ps1 payment-service v2      # ship the bad release
+docker compose logs -f controller    # watch it decide, roll back to v1 and verify
+```
+
+Every step appears in the dashboard's audit log, including the times it chose **not** to act. Set it back to `dry-run` when you are done.
+
 ## Tests and CI
 
 ```powershell
 python .\order-service\test_investigator.py
+python .\controller\test_policy.py
+python .\controller\test_safety.py
 ```
 
-Eight tests cover errors, slowness and outages for both dependencies, the older flat evidence format, and both dependencies failing at once. GitHub Actions runs two jobs on every push: `test` runs the unit tests, and `build` validates the compose file and builds every image.
+118 unit tests across six files cover the investigator, the rulebook, the safety checks, the executor, the controller loop and notifications. The rulebook and safety checks are pure functions with no Docker or network access, so every rule can be tested on its own. GitHub Actions runs two jobs on every push: `test` runs all six test files, and `build` validates the compose file and builds every image.
 
 ## Project layout
 
 ```
 RootLens/
-├── assets/                  logo and animated diagrams used by this README
+├── logo.svg, banner.svg, architecture.svg   images used by this README
 ├── user-service/            FastAPI service with chaos switches
 ├── payment-service/         FastAPI service with chaos switches
 ├── order-service/
@@ -158,6 +186,13 @@ RootLens/
 │   ├── dashboard.py         live HTML dashboard
 │   └── test_investigator.py unit tests
 ├── detector/                polls Prometheus, opens and resolves incidents
+├── controller/
+│   ├── policy.py            the rulebook: act or escalate (decides only)
+│   ├── safety.py            pre-flight checks and recovery verification
+│   ├── executor.py          the only code that changes the running system
+│   ├── controller.py        the loop: decide, check, act, verify, record
+│   ├── notify.py            Telegram notices to service owners
+│   └── test_*.py            unit tests
 ├── prometheus/prometheus.yml
 ├── compose.yaml
 ├── traffic.py               fake customers
@@ -176,27 +211,33 @@ RootLens/
 - [x] Live dashboard
 - [x] Unit tests and GitHub Actions CI
 - [x] Versioned releases, `deploy.ps1`, deployment records
-- [ ] Change correlation: flag a "bad release" cause when a failure starts soon after a deploy
-- [ ] Policy engine: a unit-tested rule set that decides rollback, restart, or escalate
-- [ ] Remediation controller: dry-run first, then enforce
-- [ ] Dashboard: per-dependency evidence, deployments, escalations, audit log
-- [ ] Later: LLM-written explanations grounded in evidence, OpenTelemetry traces, PostgreSQL, API authentication, Grafana persistence, Kubernetes, a latency-based detector, an experiment results table
+- [x] Change correlation: link a failure to a release that went out just before it
+- [x] Policy engine: a unit-tested rulebook that decides rollback, restart, or escalate
+- [x] Remediation controller: off, dry-run and enforce, with pre-flight checks and recovery verification
+- [x] Dashboard: per-dependency evidence, deployments, escalations, audit log
+- [x] Telegram notices to each service's owner
+- [x] OpenTelemetry tracing with Jaeger
+- [ ] Centralized logs
+- [ ] Kubernetes
+- [ ] Later: LLM-written explanations grounded in evidence, PostgreSQL, API authentication, Grafana persistence, a latency-based detector, an experiment results table
 
 ## Safety design
 
-The controller will need Docker access, which is powerful. These limits keep it contained:
+The controller has Docker access, which is powerful. These limits keep it contained:
 
 - **Allowlist:** only `rollback_deployment` and `restart_service`, on `user-service` and `payment-service`.
 - **Rate limits:** at most 2 actions per incident, 60 s apart, and 3 per service per hour.
-- **Dry-run first:** the controller can be switched between `off`, `dry-run` and `enforce`.
-- **Verify, then trust:** after acting, it checks that the failure ratio really dropped, and escalates if not.
+- **Dry-run first:** the controller can be switched between `off`, `dry-run` and `enforce`. Any unknown setting means `off`.
+- **Pre-flight checks:** before acting it confirms the incident is under 30 minutes old, the service is still failing, and the rollback target really is an earlier version.
+- **Verify, then trust:** after acting, it needs 3 healthy checks in a row within 2 minutes, and escalates if not.
 - **Audit log:** every decision is recorded, including "chose not to act".
 - **Human escalation:** medium or low confidence, or more than one dependency failing, means no action.
 
 ## Honest notes
 
 - The rollback is real release mechanics, but the bug in `v2` is deliberately planted. This is a simulated release pipeline on one machine.
-- `POST /deployments` is not authenticated yet.
+- `POST /deployments` and the other write endpoints are not authenticated yet.
+- The controller mounts the Docker socket. That is fine on one laptop, but a real system would use a narrower permission.
 - Slowness that stays under the 3 s timeout is not detected yet.
 
 ## Author
