@@ -7,6 +7,7 @@ The file is found at $ROOTLENS_CONFIG, else next to this file (inside a
 container), else at the project root (when running from a checkout).
 """
 import os
+import re
 
 import yaml
 
@@ -18,6 +19,9 @@ ENTRY_KEYS = ("service", "requests", "errors", "latency_buckets",
               "timeout_seconds")
 SERVICE_KEYS = ("requests", "errors")
 LATENCY_UNITS = {"seconds": 1, "milliseconds": 1000}
+
+# A Docker container name, and nothing that could be read as an option.
+CONTAINER_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -69,6 +73,9 @@ def validate(raw):
             raise ConfigError(f"{name} lists unknown actions: {sorted(unknown)}")
         if "rollback_deployment" in actions and not info.get("version_env"):
             raise ConfigError(f"{name} allows rollback but has no version_env.")
+        container = info.get("container")
+        if container is not None and not CONTAINER_NAME.match(str(container)):
+            raise ConfigError(f"{name} has an invalid container name: {container!r}")
 
     known = set(services) | {entry["service"]}
     dependencies = raw.get("dependencies") or {}

@@ -51,11 +51,18 @@ def check_request(action, service, target_version=None):
     return None
 
 
-def build_command(action, service):
-    """The exact command to run. A list, never a shell string."""
+def build_command(action, service, container=None):
+    """The exact command to run. A list, never a shell string.
+
+    A service with a `container` in services.yaml (one that lives outside this
+    Compose project, such as the OpenTelemetry Demo) is restarted by container
+    name instead. topology.py has already checked that the name is plain.
+    """
     if action == "rollback_deployment":
         return ["docker", "compose", "up", "-d", "--no-deps", "--force-recreate", service]
     if action == "restart_service":
+        if container:
+            return ["docker", "restart", container]
         return ["docker", "compose", "restart", service]
     raise ValueError(f"Unknown action: {action}")
 
@@ -89,8 +96,11 @@ def _last_line(text):
 
 def read_version(service):
     """The version a service reports right now, or None if it cannot be reached."""
+    url = (topology.services().get(service) or {}).get("url")
+    if not url:
+        return None
     try:
-        response = httpx.get(f"http://{service}:8000/version", timeout=3.0)
+        response = httpx.get(f"{url}/version", timeout=3.0)
         return response.json().get("version")
     except Exception:
         return None
@@ -183,7 +193,8 @@ def _rollback(service, target, project_dir, runner, probe, recorder, ready_timeo
 
 
 def _restart(service, project_dir, runner, probe, ready_timeout):
-    command = build_command("restart_service", service)
+    info = topology.services().get(service) or {}
+    command = build_command("restart_service", service, info.get("container"))
     try:
         result = runner(command, project_dir)
     except Exception as error:
@@ -191,12 +202,13 @@ def _restart(service, project_dir, runner, probe, ready_timeout):
 
     if result.returncode != 0:
         return _failed(
-            f"docker compose exited with code {result.returncode}: "
+            f"{' '.join(command[:2])} exited with code {result.returncode}: "
             f"{_last_line(result.stderr)}"
         )
 
     summary = f"restarted {service}"
-    if not _wait(probe, service, None, ready_timeout):
+    # Only a service with a /version endpoint can say it is back.
+    if info.get("url") and not _wait(probe, service, None, ready_timeout):
         summary += f" (warning: it did not answer within {ready_timeout}s)"
     return _executed(summary)
 

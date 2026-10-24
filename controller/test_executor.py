@@ -199,6 +199,15 @@ def test_dotted_version_is_accepted():
     assert runner.commands
 
 
+def test_restart_by_container_name_for_services_outside_compose():
+    assert executor.build_command("restart_service", "payment", "payment") == [
+        "docker", "restart", "payment",
+    ]
+    assert executor.build_command("restart_service", "payment-service") == [
+        "docker", "compose", "restart", "payment-service",
+    ]
+
+
 if __name__ == "__main__":
     tests = [
         value for name, value in sorted(globals().items())

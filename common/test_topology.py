@@ -140,6 +140,16 @@ def test_optional_queries_can_be_left_out():
     assert set(q) == {"error_ratio"}
 
 
+def test_container_name_must_be_plain():
+    raw = good()
+    raw["services"]["search"]["container"] = "search"
+    topology.validate(raw)
+    for bad in ("--privileged", "a b", "x;rm -rf /", ""):
+        raw = good()
+        raw["services"]["search"]["container"] = bad
+        rejected(raw, "invalid container name")
+
+
 if __name__ == "__main__":
     tests = [
         value for name, value in sorted(globals().items())
