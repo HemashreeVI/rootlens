@@ -102,8 +102,8 @@ def scenario_rows(runs):
             name + (" ⚠" if first.get("known_gap") else ""),
             expected,
             str(len(group)),
-            ratio([not r["detected"] for r in group]) if first.get("control")
-            else ratio([r["detected"] for r in group]),
+            (f"{sum(1 for r in group if r['detected'])} false alarms")
+            if first.get("control") else ratio([r["detected"] for r in group]),
             ratio([diagnosis_correct(r) for r in group]),
             ratio([action_correct(r) for r in group]),
             ratio([r.get("auto_resolved") for r in group
