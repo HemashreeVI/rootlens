@@ -168,6 +168,52 @@ docker compose logs -f controller    # watch it decide, roll back to v1 and veri
 
 Every step appears in the dashboard's audit log, including the times it chose **not** to act. Set it back to `dry-run` when you are done.
 
+## Benchmark: does it actually work?
+
+[`benchmark/run.py`](benchmark/run.py) runs fire drills against the live stack. For each
+scenario it waits for a clean, healthy system, sends steady fake traffic, injects one
+known fault, and then only watches through the public APIs: when an incident opens,
+what the investigator blames, what the controller does, and when the incident closes.
+It then puts everything back and moves on.
+
+12 scenarios, 3 runs each (36 runs, about 100 minutes), in enforce mode:
+
+| Measure | Result |
+|---|---|
+| Faults detected | **30/30** |
+| Right root cause (service and kind of failure) | **27/27** |
+| Right action, including escalating when unsure | **30/30** |
+| Recovered with no human | **27/27** |
+| Unsafe actions (wrong service, or acting when it should escalate) | **0** |
+| False alarms with nothing broken | **0 of 3** |
+| Median time to detect / first action / recover | **57 s / 66 s / 138 s** |
+| Known gap: 2 s slowness under the 3 s timeout | caught 0 of 3 |
+
+The scenarios cover errors, slowness and a stopped container for each service, a
+bad release of each, and three trick cases: a **decoy** healthy release just before
+an unrelated failure (it must not be blamed), **two failures at once** (it must not
+act, only escalate), and a **no-fault** control. Full per-scenario results:
+[`benchmark/RESULTS.md`](benchmark/RESULTS.md); raw data, one JSON line per run:
+[`benchmark/results/runs.jsonl`](benchmark/results/runs.jsonl).
+
+Most of the recovery time is deliberate caution, not the fix: an incident opens after
+3 bad checks in a row, and closes after 3 good checks in a row, over a 1-minute window.
+
+Read these numbers with the limits in mind: the bugs are planted, the app is small,
+and the thresholds were tuned by the same person who wrote the scenarios. The next
+step is to run the same benchmark against an app RootLens was not written for.
+
+```powershell
+docker compose up -d
+python .\benchmark\run.py --list              # the 12 scenarios
+python .\benchmark\run.py --repeat 3          # about 100 minutes
+python .\benchmark\report.py --write          # rebuild benchmark/RESULTS.md
+```
+
+The benchmark switches the controller to enforce mode for its own run (and raises the
+per-service hourly action limit, since it causes dozens of incidents an hour), then
+puts `.env` back when it finishes or is stopped.
+
 ## Point RootLens at another app
 
 Nothing about the three demo services is hard-coded in RootLens itself. The
@@ -263,9 +309,10 @@ RootLens/
 - [x] Dashboard: per-dependency evidence, deployments, escalations, audit log
 - [x] Telegram notices to each service's owner
 - [x] OpenTelemetry tracing with Jaeger
+- [x] Fault-injection benchmark with published results
 - [ ] Centralized logs
 - [ ] Kubernetes
-- [ ] Later: LLM-written explanations grounded in evidence, PostgreSQL, API authentication, Grafana persistence, a latency-based detector, an experiment results table
+- [ ] Later: LLM-written explanations grounded in evidence, PostgreSQL, API authentication, Grafana persistence, a latency-based detector
 
 ## Safety design
 
