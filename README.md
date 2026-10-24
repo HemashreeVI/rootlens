@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/prometheus-metrics-E6522C?logo=prometheus&logoColor=white" alt="Prometheus" />
   <img src="https://img.shields.io/badge/grafana-dashboards-F46800?logo=grafana&logoColor=white" alt="Grafana" />
   <img src="https://img.shields.io/badge/opentelemetry-traces-425CC7?logo=opentelemetry&logoColor=white" alt="OpenTelemetry" />
-  <img src="https://img.shields.io/badge/tests-154%20passing-2E9B63" alt="154 tests" />
+  <img src="https://img.shields.io/badge/tests-159%20passing-2E9B63" alt="159 tests" />
   <img src="https://img.shields.io/badge/status-working%20end%20to%20end-2E9B63" alt="Status" />
 </p>
 
@@ -175,20 +175,27 @@ detector, investigator, controller and dashboard all read
 [`services.yaml`](services.yaml):
 
 ```yaml
+window: 1m
 entry:                      # the service customers call; its failures open incidents
   service: order-service
-  requests_metric: rootlens_order_requests_total
-  endpoint: /orders
+  requests: 'rootlens_order_requests_total{endpoint="/orders"}'
+  errors: 'rootlens_order_requests_total{endpoint="/orders",status=~"5.."}'
   ...
 services:                   # the services behind it
   payment-service:
-    requests_metric: rootlens_payment_requests_total
-    endpoint: /pay/{order_id}
+    up: 'up{job="payment-service"}'
+    requests: 'rootlens_payment_requests_total{endpoint="/pay/{order_id}"}'
+    errors: 'rootlens_payment_requests_total{endpoint="/pay/{order_id}",status=~"5.."}'
     version_env: PAYMENT_SERVICE_VERSION
     actions: [rollback_deployment, restart_service]
 dependencies:
   order-service: [user-service, payment-service]
 ```
+
+Metrics are written as Prometheus selectors, so any naming scheme works:
+RootLens wraps them in `rate(...[window])` itself. Only `requests` and `errors`
+are required for each service; `up`, `caller_failures` and the version settings
+are optional, and RootLens simply has less evidence without them.
 
 Each service lists the actions the robot may take on it. The file can only
 choose from actions RootLens has code for, so editing it can narrow what the
@@ -206,7 +213,7 @@ pip install httpx pyyaml
 python .\run_tests.py
 ```
 
-154 unit tests across nine files cover the config reader, the detector, the investigator, the rulebook, the safety checks, the executor, the controller loop, notifications and the benchmark's scoring. None of them need Docker or a network. GitHub Actions runs two jobs on every push: `test` runs `run_tests.py`, and `build` validates the compose file and builds every image.
+159 unit tests across nine files cover the config reader, the detector, the investigator, the rulebook, the safety checks, the executor, the controller loop, notifications and the benchmark's scoring. None of them need Docker or a network. GitHub Actions runs two jobs on every push: `test` runs `run_tests.py`, and `build` validates the compose file and builds every image.
 
 ## Project layout
 

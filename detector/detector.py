@@ -18,36 +18,20 @@ OKS_TO_RESOLVE = 3         # healthy checks in a row before resolving
 # Deployments older than this are not included as evidence.
 RECENT_DEPLOY_WINDOW_SECONDS = 1800
 
-# Which app to watch comes from services.yaml (see common/topology.py).
+# Which app to watch, and how to ask Prometheus about it, comes from
+# services.yaml (see common/topology.py).
 ENTRY = topology.entry()
-ENTRY_SELECTOR = 'endpoint="' + ENTRY["endpoint"] + '"'
+ENTRY_QUERIES = topology.entry_queries()
 
 FINGERPRINT = ENTRY["service"] + ":error_ratio"
 
 # The failure fraction of entry requests: this is what triggers incidents.
-QUERY = (
-    "sum(rate(" + ENTRY["requests_metric"] + "{" + ENTRY_SELECTOR
-    + ',status=~"5.."}[1m]))'
-    + " / "
-    + "sum(rate(" + ENTRY["requests_metric"] + "{" + ENTRY_SELECTOR + "}[1m]))"
-)
+QUERY = ENTRY_QUERIES["failure_ratio"]
 
-# Every service behind the entry, and where its own metrics live.
+# Every service behind the entry, and the questions to ask about each.
 DEPENDENCIES = {
-    name: {"metric": info["requests_metric"], "endpoint": info["endpoint"]}
-    for name, info in topology.services().items()
+    name: topology.service_queries(name) for name in topology.services()
 }
-
-ORDER_STATUS_QUERY = (
-    "sum by (status) "
-    "(rate(" + ENTRY["requests_metric"] + "{" + ENTRY_SELECTOR + "}[1m]))"
-)
-
-ORDER_P95_QUERY = (
-    "histogram_quantile(0.95, sum by (le) "
-    "(rate(" + ENTRY["latency_metric"] + "_bucket"
-    "{" + ENTRY_SELECTOR + "}[1m])))"
-)
 
 
 def run_query(query):
@@ -79,31 +63,24 @@ def get_error_ratio():
     return query_number(QUERY)
 
 
-def collect_dependency(name, info):
+def collect_dependency(name, queries):
     """Ask the same questions about one dependency."""
-    metric = info["metric"]
-    selector = 'endpoint="' + info["endpoint"] + '"'
-
-    own_error_query = (
-        'sum(rate(' + metric + '{' + selector + ',status=~"5.."}[1m]))'
-        + ' / '
-        + 'sum(rate(' + metric + '{' + selector + '}[1m]))'
-    )
-
-    kinds_query = (
-        "sum by (kind) (rate(" + ENTRY["dependency_failures_metric"]
-        + '{dependency="' + name + '"}[1m]))'
-    )
-
     failure_rates = {}
-    for item in run_query(kinds_query):
-        failure_rates[item["metric"]["kind"]] = round(
-            float(item["value"][1]), 3
-        )
+
+    if "caller_failures_by_kind" in queries:
+        label = topology.services()[name]["caller_failure_kind_label"]
+        for item in run_query(queries["caller_failures_by_kind"]):
+            kind = item["metric"].get(label)
+            if kind:
+                failure_rates[kind] = round(float(item["value"][1]), 3)
+    elif "caller_errors" in queries:
+        errors = query_number(queries["caller_errors"])
+        if errors:
+            failure_rates["error"] = round(errors, 3)
 
     return {
-        "up": query_number('up{job="' + name + '"}'),
-        "own_error_ratio": query_number(own_error_query),
+        "up": query_number(queries["up"]) if "up" in queries else None,
+        "own_error_ratio": query_number(queries["error_ratio"]),
         "failure_rates_per_second": failure_rates,
     }
 
@@ -141,19 +118,23 @@ def collect_evidence(ratio):
     }
 
     try:
-        status_rates = {}
-        for item in run_query(ORDER_STATUS_QUERY):
-            status_rates[item["metric"]["status"]] = round(
-                float(item["value"][1]), 3
-            )
-        evidence["order_status_rates_per_second"] = status_rates
-        evidence["order_p95_latency_seconds"] = query_number(ORDER_P95_QUERY)
+        if "status_rates" in ENTRY_QUERIES:
+            label = ENTRY["status_label"]
+            status_rates = {}
+            for item in run_query(ENTRY_QUERIES["status_rates"]):
+                status_rates[item["metric"].get(label, "")] = round(
+                    float(item["value"][1]), 3
+                )
+            evidence["order_status_rates_per_second"] = status_rates
+        evidence["order_p95_latency_seconds"] = query_number(
+            ENTRY_QUERIES["p95_seconds"]
+        )
     except Exception as error:
         evidence["collection_error"] = str(error)
 
-    for name, info in DEPENDENCIES.items():
+    for name, queries in DEPENDENCIES.items():
         try:
-            evidence["dependencies"][name] = collect_dependency(name, info)
+            evidence["dependencies"][name] = collect_dependency(name, queries)
         except Exception as error:
             evidence["dependencies"][name] = {"collection_error": str(error)}
 
@@ -172,7 +153,7 @@ def open_incident(value):
         f"{ORDER_SERVICE_URL}/incidents",
         json={
             "service": ENTRY["service"],
-            "endpoint": ENTRY["endpoint"],
+            "endpoint": ENTRY.get("endpoint"),
             "fingerprint": FINGERPRINT,
             "message": (
                 f"{ENTRY.get('display_name', ENTRY['service'])} failure "

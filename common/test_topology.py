@@ -6,19 +6,27 @@ import topology
 
 def good():
     return copy.deepcopy({
+        "window": "2m",
         "entry": {
-            "service": "front", "requests_metric": "front_requests_total",
-            "endpoint": "/buy", "latency_metric": "front_seconds",
-            "dependency_failures_metric": "front_dep_failures_total",
+            "service": "front",
+            "requests": 'calls_total{service="front"}',
+            "errors": 'calls_total{service="front",status="ERROR"}',
+            "latency_buckets": 'duration_ms_bucket{service="front"}',
+            "latency_unit": "milliseconds",
             "timeout_seconds": 2,
         },
         "services": {
-            "cart": {"requests_metric": "cart_total", "endpoint": "/cart",
+            "cart": {"requests": 'calls_total{service="cart"}',
+                     "errors": 'calls_total{service="cart",status="ERROR"}',
+                     "up": 'up{job="cart"}',
+                     "caller_failures": 'calls_total{caller="front",callee="cart",status="ERROR"}',
                      "version_env": "CART_VERSION",
                      "actions": ["rollback_deployment", "restart_service"]},
-            "search": {"requests_metric": "search_total", "endpoint": "/q",
+            "search": {"requests": "search_total", "errors": "search_errors_total",
+                       "caller_failures": 'fails_total{to="search"}',
+                       "caller_failure_kind_label": "why",
                        "actions": ["restart_service"]},
-            "ledger": {"requests_metric": "ledger_total", "endpoint": "/l"},
+            "ledger": {"requests": "ledger_total", "errors": "ledger_errors_total"},
         },
         "dependencies": {"front": ["cart", "search", "ledger"]},
     })
@@ -56,14 +64,14 @@ def test_actions_are_per_service():
 
 def test_missing_entry_field_is_rejected():
     raw = good()
-    del raw["entry"]["requests_metric"]
-    rejected(raw, "requests_metric")
+    del raw["entry"]["requests"]
+    rejected(raw, "requests")
 
 
 def test_missing_service_field_is_rejected():
     raw = good()
-    del raw["services"]["cart"]["endpoint"]
-    rejected(raw, "cart is missing: endpoint")
+    del raw["services"]["cart"]["errors"]
+    rejected(raw, "cart is missing: errors")
 
 
 def test_unknown_action_is_rejected():
@@ -89,6 +97,47 @@ def test_no_services_is_rejected():
     raw = good()
     raw["services"] = {}
     rejected(raw, "at least one service")
+
+
+def test_bad_latency_unit_is_rejected():
+    raw = good()
+    raw["entry"]["latency_unit"] = "hours"
+    rejected(raw, "latency_unit")
+
+
+def test_entry_queries_use_the_window_and_unit():
+    q = topology.entry_queries(topology.validate(good()))
+    assert q["failure_ratio"] == (
+        'sum(rate(calls_total{service="front",status="ERROR"}[2m]))'
+        ' / sum(rate(calls_total{service="front"}[2m]))'
+    )
+    assert q["p95_seconds"].endswith(") / 1000")
+    assert "status_rates" not in q
+
+
+def test_caller_failures_without_a_label_count_as_errors():
+    q = topology.service_queries("cart", topology.validate(good()))
+    assert q["caller_errors"] == (
+        'sum(rate(calls_total{caller="front",callee="cart",status="ERROR"}[2m]))'
+    )
+    assert "caller_failures_by_kind" not in q
+    assert q["up"] == 'up{job="cart"}'
+
+
+def test_caller_failures_with_a_label_are_split_by_kind():
+    q = topology.service_queries("search", topology.validate(good()))
+    assert q["caller_failures_by_kind"] == (
+        'sum by (why) (rate(fails_total{to="search"}[2m]))'
+    )
+    assert q["caller_timeouts"] == (
+        'sum(rate(fails_total{to="search",why="timeout"}[2m]))'
+    )
+    assert "up" not in q
+
+
+def test_optional_queries_can_be_left_out():
+    q = topology.service_queries("ledger", topology.validate(good()))
+    assert set(q) == {"error_ratio"}
 
 
 if __name__ == "__main__":

@@ -8,30 +8,17 @@ import topology
 
 PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
 
-# Which app to show comes from services.yaml (see common/topology.py).
+# Which app to show, and how to ask Prometheus about it, comes from
+# services.yaml (see common/topology.py).
 ENTRY = topology.entry()
-_ENTRY_SELECTOR = 'endpoint="' + ENTRY["endpoint"] + '"'
+ENTRY_QUERIES = topology.entry_queries()
 
-FAILURE_RATIO_QUERY = (
-    "sum(rate(" + ENTRY["requests_metric"] + "{" + _ENTRY_SELECTOR
-    + ',status=~"5.."}[1m]))'
-    + " / "
-    + "sum(rate(" + ENTRY["requests_metric"] + "{" + _ENTRY_SELECTOR + "}[1m]))"
-)
-
-P95_QUERY = (
-    "histogram_quantile(0.95, sum by (le) "
-    "(rate(" + ENTRY["latency_metric"] + "_bucket"
-    "{" + _ENTRY_SELECTOR + "}[1m])))"
-)
-
-RATE_QUERY = (
-    "sum(rate(" + ENTRY["requests_metric"] + "{" + _ENTRY_SELECTOR + "}[1m]))"
-)
+FAILURE_RATIO_QUERY = ENTRY_QUERIES["failure_ratio"]
+P95_QUERY = ENTRY_QUERIES["p95_seconds"]
+RATE_QUERY = ENTRY_QUERIES["request_rate"]
 
 DEPENDENCIES = {
-    name: {"metric": info["requests_metric"], "endpoint": info["endpoint"]}
-    for name, info in topology.services().items()
+    name: topology.service_queries(name) for name in topology.services()
 }
 
 
@@ -83,23 +70,6 @@ async def _version(client, url):
         return None
 
 
-def _own_error_query(info):
-    selector = 'endpoint="' + info["endpoint"] + '"'
-    metric = info["metric"]
-    return (
-        'sum(rate(' + metric + '{' + selector + ',status=~"5.."}[1m]))'
-        + ' / '
-        + 'sum(rate(' + metric + '{' + selector + '}[1m]))'
-    )
-
-
-def _timeout_query(name):
-    return (
-        "sum(rate(" + ENTRY["dependency_failures_metric"]
-        + '{dependency="' + name + '",kind="timeout"}[1m]))'
-    )
-
-
 def _display(name, info):
     return {
         "name": info.get("display_name") or name,
@@ -121,12 +91,15 @@ async def build_overview():
             "rate": _instant(client, RATE_QUERY),
             "history_ratio": _range(client, FAILURE_RATIO_QUERY),
             "history_rate": _range(client, RATE_QUERY),
-            "entry:up": _instant(client, 'up{job="' + entry_name + '"}'),
         }
-        for name, info in DEPENDENCIES.items():
-            tasks[name + ":up"] = _instant(client, 'up{job="' + name + '"}')
-            tasks[name + ":err"] = _instant(client, _own_error_query(info))
-            tasks[name + ":timeout"] = _instant(client, _timeout_query(name))
+        if ENTRY.get("up"):
+            tasks["entry:up"] = _instant(client, ENTRY["up"])
+        for name, queries in DEPENDENCIES.items():
+            if "up" in queries:
+                tasks[name + ":up"] = _instant(client, queries["up"])
+            tasks[name + ":err"] = _instant(client, queries["error_ratio"])
+            if "caller_timeouts" in queries:
+                tasks[name + ":timeout"] = _instant(client, queries["caller_timeouts"])
             if urls.get(name):
                 tasks[name + ":version"] = _version(client, urls[name])
 
@@ -134,13 +107,13 @@ async def build_overview():
         values = await asyncio.gather(*tasks.values())
         data = dict(zip(keys, values))
 
-    services = {entry_name: {"up": data["entry:up"], "version": None}}
+    services = {entry_name: {"up": data.get("entry:up"), "version": None}}
     for name in DEPENDENCIES:
         services[name] = {
-            "up": data[name + ":up"],
+            "up": data.get(name + ":up"),
             "version": data.get(name + ":version"),
             "error_ratio": data[name + ":err"],
-            "timeout_rate": data[name + ":timeout"],
+            "timeout_rate": data.get(name + ":timeout"),
         }
 
     return {
