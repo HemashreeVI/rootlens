@@ -178,6 +178,7 @@ def open_incident(value):
         },
         timeout=5.0
     )
+    response.raise_for_status()
     print(f"OPEN incident -> created={response.json()['created']}", flush=True)
     print(f"Evidence: {evidence}", flush=True)
 
@@ -188,12 +189,34 @@ def resolve_incident():
         json={"fingerprint": FINGERPRINT},
         timeout=5.0
     )
+    response.raise_for_status()
     print(f"RESOLVE incident -> {response.json()}", flush=True)
 
 
+def next_step(state, value):
+    """Update the counters for one reading and say what to report, if anything.
+
+    state: {"breaches": int, "oks": int, "reported": None | "open" | "resolved"}
+    Returns "open", "resolve" or None. The caller marks the report as done
+    (state["reported"]) only once it has succeeded, so a failed report is
+    simply tried again on the next check instead of being lost.
+    """
+    state["breaches"] = state["breaches"] + 1 if value >= THRESHOLD else 0
+    state["oks"] = state["oks"] + 1 if value < RECOVERY_THRESHOLD else 0
+
+    if state["breaches"] >= BREACHES_TO_OPEN and state["reported"] != "open":
+        return "open"
+
+    if state["oks"] >= OKS_TO_RESOLVE and state["reported"] != "resolved":
+        return "resolve"
+
+    return None
+
+
 def main():
-    breaches = 0
-    oks = 0
+    # "reported" starts unknown, so after a restart the detector re-reports
+    # whatever it sees. Order Service ignores duplicates, so that is safe.
+    state = {"breaches": 0, "oks": 0, "reported": None}
 
     print("Detector started.", flush=True)
 
@@ -206,14 +229,15 @@ def main():
             else:
                 print(f"failure ratio = {value:.2f}", flush=True)
 
-                breaches = breaches + 1 if value >= THRESHOLD else 0
-                oks = oks + 1 if value < RECOVERY_THRESHOLD else 0
+                step = next_step(state, value)
 
-                if breaches == BREACHES_TO_OPEN:
+                if step == "open":
                     open_incident(value)
+                    state["reported"] = "open"
 
-                if oks == OKS_TO_RESOLVE:
+                if step == "resolve":
                     resolve_incident()
+                    state["reported"] = "resolved"
 
         except Exception as error:
             print(f"Check failed: {error}", flush=True)
@@ -221,4 +245,5 @@ def main():
         time.sleep(CHECK_INTERVAL)
 
 
-main()
+if __name__ == "__main__":
+    main()

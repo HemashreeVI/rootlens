@@ -14,6 +14,7 @@ def iso(seconds_ago):
 def bad_release_diagnosis():
     return {
         "likely_cause": "payment-service is returning errors",
+        "cause_kind": "errors",
         "confidence": "high",
         "root_cause_service": "payment-service",
         "ranked_causes": [{

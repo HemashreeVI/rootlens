@@ -3,10 +3,14 @@
 This module only DECIDES. It never touches Docker or the network, which makes
 every rule easy to test.
 """
+import re
 
 # The only things the controller will ever be allowed to do.
 ALLOWED_ACTIONS = {"rollback_deployment", "restart_service"}
 ALLOWED_TARGETS = {"user-service", "payment-service"}
+
+# The kinds of cause the investigator can name.
+CAUSE_KINDS = {"down", "errors", "slow"}
 
 MIN_CONFIDENCE = "high"
 ACCEPTED_TRIGGER_STRENGTHS = {"strong", "moderate"}
@@ -14,6 +18,9 @@ ACCEPTED_TRIGGER_STRENGTHS = {"strong", "moderate"}
 MAX_ATTEMPTS_PER_INCIDENT = 2
 COOLDOWN_SECONDS = 60
 MAX_ACTIONS_PER_SERVICE_PER_HOUR = 3
+
+# "v2", "v2.1", "1.10.3": an optional "v", then numbers separated by dots.
+VERSION_PATTERN = re.compile(r"^v?(\d+(?:\.\d+)*)$")
 
 # Gentlest action first.
 LADDER = ["rollback_deployment", "restart_service"]
@@ -48,21 +55,30 @@ def _act(action, service, reason, target_version=None):
     return _decision("act", reason, action, service, target_version)
 
 
-def cause_kind(cause):
-    """Turn the investigator's cause sentence into a simple kind."""
-    text = cause or ""
-    if text.endswith("is down"):
-        return "down"
-    if text.endswith("is returning errors"):
-        return "errors"
-    if text.endswith("is too slow (timeouts)"):
-        return "slow"
-    return None
+def cause_kind(diagnosis):
+    """The kind of cause the investigator named: "down", "errors" or "slow".
+
+    Read from the structured "cause_kind" field, never from the wording of
+    "likely_cause", so rewording a sentence cannot change what the robot does.
+    """
+    kind = (diagnosis or {}).get("cause_kind")
+    return kind if kind in CAUSE_KINDS else None
 
 
-def _version_number(version):
-    digits = "".join(ch for ch in str(version or "") if ch.isdigit())
-    return int(digits) if digits else None
+def parse_version(version):
+    """Turn "v1.10.2" into (1, 10, 2) so versions compare correctly.
+
+    Trailing zeros are dropped, so "v2" and "v2.0" are the same version.
+    Returns None for anything that is not a plain version number.
+    """
+    match = VERSION_PATTERN.match(str(version or "").strip())
+    if not match:
+        return None
+
+    parts = [int(part) for part in match.group(1).split(".")]
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts)
 
 
 def _rollback_target(trigger, service):
@@ -77,8 +93,8 @@ def _rollback_target(trigger, service):
         return None, "the deployment is too old to be blamed"
 
     previous = trigger.get("previous_version")
-    previous_number = _version_number(previous)
-    current_number = _version_number(trigger.get("version"))
+    previous_number = parse_version(previous)
+    current_number = parse_version(trigger.get("version"))
 
     if previous in (None, "", "none") or previous_number is None:
         return None, "no previous version is recorded"
@@ -130,8 +146,10 @@ def decide(diagnosis, attempts=None, service_actions_last_hour=0):
         )
 
     cause = diagnosis.get("likely_cause")
-    if cause_kind(cause) is None:
-        return _escalate(f"Unrecognised kind of cause: {cause!r}.")
+    if cause_kind(diagnosis) is None:
+        return _escalate(
+            f"Unrecognised kind of cause: {diagnosis.get('cause_kind')!r}."
+        )
 
     if len(attempts) >= MAX_ATTEMPTS_PER_INCIDENT:
         return _escalate(

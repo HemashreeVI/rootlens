@@ -185,6 +185,27 @@ def test_normal_release_trigger_is_marked_as_release():
     assert r["trigger"]["kind"] == "release"
 
 
+def test_cause_kind_is_reported_as_a_field():
+    r = run(payment_errors_evidence())
+    assert r["cause_kind"] == "errors"
+    assert all("kind" in cause for cause in r["ranked_causes"])
+
+
+def test_insufficient_evidence_has_no_cause_kind():
+    r = run({"dependencies": {"user-service": HEALTHY,
+                              "payment-service": HEALTHY}})
+    assert r["cause_kind"] is None
+
+
+def test_dotted_versions_compare_as_numbers():
+    # v1.10 is older than v2; stripping digits used to read it as 110.
+    r = run(payment_errors_evidence([deploy("payment-service", "v2", "v1.10", 60)]))
+    assert r["trigger"]["kind"] == "release"
+
+    r = run(payment_errors_evidence([deploy("payment-service", "v1.10", "v2", 60)]))
+    assert r["trigger"]["kind"] == "rollback"
+
+
 if __name__ == "__main__":
     tests = [
         value for name, value in sorted(globals().items())

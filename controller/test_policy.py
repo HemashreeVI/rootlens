@@ -1,4 +1,4 @@
-from policy import ALLOWED_ACTIONS, decide, is_allowed
+from policy import ALLOWED_ACTIONS, decide, is_allowed, parse_version
 
 
 def trigger(service="payment-service", version="v2", previous="v1",
@@ -14,11 +14,12 @@ def trigger(service="payment-service", version="v2", previous="v1",
 
 def diagnosis(cause="payment-service is returning errors",
               service="payment-service", confidence="high",
-              trig=None, ranked=None):
+              trig=None, ranked=None, kind="errors"):
     if ranked is None:
         ranked = [{"cause": cause, "service": service, "score": 1.0}]
     return {
         "likely_cause": cause,
+        "cause_kind": kind,
         "confidence": confidence,
         "root_cause_service": service,
         "trigger": trig,
@@ -45,18 +46,18 @@ def test_no_release_means_restart():
 
 
 def test_down_with_recent_release_rolls_back_first():
-    d = decide(diagnosis(cause="payment-service is down", trig=trigger()))
+    d = decide(diagnosis(cause="payment-service is down", kind="down", trig=trigger()))
     assert d["action"] == "rollback_deployment"
 
 
 def test_down_without_release_restarts():
-    d = decide(diagnosis(cause="payment-service is down"))
+    d = decide(diagnosis(cause="payment-service is down", kind="down"))
     assert d["action"] == "restart_service"
 
 
 def test_slow_service_restarts_without_release():
     d = decide(diagnosis(cause="user-service is too slow (timeouts)",
-                         service="user-service"))
+                         service="user-service", kind="slow"))
     assert d["action"] == "restart_service"
     assert d["service"] == "user-service"
 
@@ -90,7 +91,7 @@ def test_forbidden_service_escalates():
 
 
 def test_unknown_cause_escalates():
-    d = decide(diagnosis(cause="payment-service is on fire"))
+    d = decide(diagnosis(cause="payment-service is on fire", kind="on_fire"))
     assert d["decision"] == "escalate"
 
 
@@ -163,23 +164,23 @@ def test_allowlist():
 
 def test_never_returns_a_forbidden_action():
     causes = [
-        ("payment-service is returning errors", "payment-service"),
-        ("user-service is down", "user-service"),
-        ("user-service is too slow (timeouts)", "user-service"),
-        ("order-service is down", "order-service"),
-        ("something strange", "payment-service"),
+        ("payment-service is returning errors", "payment-service", "errors"),
+        ("user-service is down", "user-service", "down"),
+        ("user-service is too slow (timeouts)", "user-service", "slow"),
+        ("order-service is down", "order-service", "down"),
+        ("something strange", "payment-service", None),
     ]
     triggers = [None, trigger(), trigger(version="v1", previous="v2"),
                 trigger(strength="weak"), trigger(previous="none")]
     histories = [[], [attempt("rollback_deployment", 90)],
                  [attempt("restart_service", 10)]]
 
-    for cause, service in causes:
+    for cause, service, kind in causes:
         for confidence in ("high", "medium", "low"):
             for trig in triggers:
                 for history in histories:
                     d = decide(
-                        diagnosis(cause=cause, service=service,
+                        diagnosis(cause=cause, service=service, kind=kind,
                                   confidence=confidence, trig=trig),
                         attempts=history,
                     )
@@ -187,6 +188,37 @@ def test_never_returns_a_forbidden_action():
                     if d["decision"] == "act":
                         assert d["action"] in ALLOWED_ACTIONS
                         assert is_allowed(d["action"], d["service"])
+
+
+def test_parse_version():
+    assert parse_version("v2") == (2,)
+    assert parse_version("v2.0.0") == (2,)
+    assert parse_version("1.10.3") == (1, 10, 3)
+    assert parse_version("v1.10") > parse_version("v1.9")
+    assert parse_version("v1.10") < parse_version("v2")
+    for bad in (None, "", "latest", "v2-hotfix", "v1; rm -rf /"):
+        assert parse_version(bad) is None
+
+
+def test_dotted_release_rolls_back_to_dotted_previous():
+    d = decide(diagnosis(trig=trigger(version="v2.0", previous="v1.10")))
+    assert d["action"] == "rollback_deployment"
+    assert d["target_version"] == "v1.10"
+
+
+def test_dotted_rollback_is_not_rolled_back_again():
+    # v1.10 -> v2 would look "newer" to the old digit-stripping (110 > 2).
+    d = decide(diagnosis(trig=trigger(version="v1.10", previous="v2")))
+    assert d["action"] != "rollback_deployment"
+
+
+def test_cause_kind_comes_from_the_field_not_the_wording():
+    reworded = diagnosis(cause="Payment Service: lots of 5xx responses")
+    assert decide(reworded)["decision"] == "act"
+
+    missing = diagnosis()
+    missing.pop("cause_kind")
+    assert decide(missing)["decision"] == "escalate"
 
 
 if __name__ == "__main__":

@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Run detector tests
+        run: |
+          pip install httpx
+          python detector/test_detector.py
       - name: Run investigator tests
         run: python order-service/test_investigator.py
       - name: Run policy tests

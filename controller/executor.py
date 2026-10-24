@@ -16,14 +16,13 @@ Manual use, from inside the controller container:
   python executor.py restart payment-service
 """
 import os
-import re
 import subprocess
 import sys
 import time
 
 import httpx
 
-from policy import is_allowed
+from policy import is_allowed, parse_version
 
 PROJECT_DIR = os.getenv("PROJECT_DIR", "/project")
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
@@ -35,7 +34,6 @@ VERSION_KEYS = {
     "user-service": "USER_SERVICE_VERSION",
     "payment-service": "PAYMENT_SERVICE_VERSION",
 }
-VERSION_PATTERN = re.compile(r"^v\d+$")
 
 
 # ---------- pure helpers (easy to test) ----------
@@ -45,7 +43,7 @@ def check_request(action, service, target_version=None):
     if not is_allowed(action, service):
         return f"{action} on {service} is not allowed."
     if action == "rollback_deployment":
-        if not target_version or not VERSION_PATTERN.match(str(target_version)):
+        if not target_version or parse_version(target_version) is None:
             return f"{target_version!r} is not a valid version."
     return None
 

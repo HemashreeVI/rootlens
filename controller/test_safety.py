@@ -13,14 +13,15 @@ def decision(action="rollback_deployment", service="payment-service", target="v1
     }
 
 
-def diagnosis(cause="payment-service is returning errors", version="v2"):
+def diagnosis(cause="payment-service is returning errors", version="v2",
+              kind="errors"):
     trigger = None
     if version:
         trigger = {
             "service": "payment-service", "version": version,
             "previous_version": "v1",
         }
-    return {"likely_cause": cause, "trigger": trigger}
+    return {"likely_cause": cause, "cause_kind": kind, "trigger": trigger}
 
 
 def live(ratio=0.45, payment="v2", user="v1"):
@@ -33,6 +34,7 @@ def live(ratio=0.45, payment="v2", user="v1"):
 def full_diagnosis():
     return {
         "likely_cause": "payment-service is returning errors",
+        "cause_kind": "errors",
         "confidence": "high",
         "root_cause_service": "payment-service",
         "ranked_causes": [{
@@ -135,7 +137,7 @@ def test_unreadable_version_is_refused_when_not_down():
 
 def test_unreadable_version_is_allowed_when_the_service_is_down():
     result = safety.preflight(
-        decision(), diagnosis(cause="payment-service is down"),
+        decision(), diagnosis(cause="payment-service is down", kind="down"),
         live(payment=None), 120,
     )
     assert result["ok"], result["reason"]

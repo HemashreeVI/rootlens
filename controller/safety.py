@@ -5,7 +5,7 @@ rule easy to test.
 """
 from datetime import datetime
 
-from policy import cause_kind, is_allowed
+from policy import cause_kind, is_allowed, parse_version
 
 # ---- pre-flight ----
 MAX_INCIDENT_AGE_SECONDS = 1800
@@ -16,10 +16,6 @@ RECOVERY_THRESHOLD = 0.1
 CONSECUTIVE_OK = 3
 VERIFY_TIMEOUT_SECONDS = 120
 
-
-def _version_number(version):
-    digits = "".join(ch for ch in str(version or "") if ch.isdigit())
-    return int(digits) if digits else None
 
 
 def _no(reason):
@@ -67,8 +63,8 @@ def preflight(decision, diagnosis, live, incident_age_seconds):
         if not expected or not target:
             return _no("There is no release to roll back.")
 
-        target_number = _version_number(target)
-        expected_number = _version_number(expected)
+        target_number = parse_version(target)
+        expected_number = parse_version(expected)
         if (
             target_number is None
             or expected_number is None
@@ -77,7 +73,7 @@ def preflight(decision, diagnosis, live, incident_age_seconds):
             return _no(f"{target} is not an earlier version than {expected}.")
 
         if live_version is None:
-            if cause_kind(diagnosis.get("likely_cause")) != "down":
+            if cause_kind(diagnosis) != "down":
                 return _no(f"The live version of {service} cannot be read.")
         elif live_version != expected:
             return _no(

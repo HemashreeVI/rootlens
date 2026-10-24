@@ -192,6 +192,13 @@ def test_failed_restart_is_reported():
     assert result["outcome"] == "Execution failed: docker compose exited with code 1: boom"
 
 
+def test_dotted_version_is_accepted():
+    runner = FakeRunner()
+    result = run(rollback("v1.10.2"), project(), runner=runner)
+    assert not result["outcome"].startswith("Refused"), result["outcome"]
+    assert runner.commands
+
+
 if __name__ == "__main__":
     tests = [
         value for name, value in sorted(globals().items())

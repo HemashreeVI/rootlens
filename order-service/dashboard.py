@@ -742,9 +742,18 @@ function robotMode() {
   return latest ? latest.mode : null;
 }
 function isRollback(dep) {
-  const n = function (v) { const m = String(v || "").match(/\d+/); return m ? parseInt(m[0], 10) : null; };
+  // "v1.10.2" -> [1, 10, 2], compared part by part (same rule as investigator.py).
+  const n = function (v) {
+    const m = String(v || "").trim().match(/^v?(\d+(?:\.\d+)*)$/);
+    return m ? m[1].split(".").map(Number) : null;
+  };
   const a = n(dep.version), b = n(dep.previous_version);
-  return a != null && b != null && a < b;
+  if (a == null || b == null) return false;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0, y = b[i] || 0;
+    if (x !== y) return x < y;
+  }
+  return false;
 }
 function deployer(dep) {
   const by = dep.deployed_by || "unknown";

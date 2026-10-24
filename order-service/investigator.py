@@ -1,4 +1,5 @@
 import json
+import re
 
 # The Order Service gives up waiting for a dependency after this long.
 TIMEOUT_SECONDS = 3.0
@@ -11,6 +12,10 @@ DEPENDENCY_GRAPH = {
 # How close a deployment must be to the incident to count as a strong link.
 STRONG_SECONDS = 300
 MODERATE_SECONDS = 900
+
+# "v2", "v2.1", "1.10.3": an optional "v", then numbers separated by dots.
+# Keep in step with controller/policy.py.
+VERSION_PATTERN = re.compile(r"^v?(\d+(?:\.\d+)*)$")
 
 
 def _load_evidence(incident):
@@ -70,9 +75,20 @@ def _trigger_strength(seconds):
     return "weak"
 
 
-def _version_number(version):
-    digits = "".join(ch for ch in str(version or "") if ch.isdigit())
-    return int(digits) if digits else None
+def parse_version(version):
+    """Turn "v1.10.2" into (1, 10, 2) so versions compare correctly.
+
+    Trailing zeros are dropped, so "v2" and "v2.0" are the same version.
+    Returns None for anything that is not a plain version number.
+    """
+    match = VERSION_PATTERN.match(str(version or "").strip())
+    if not match:
+        return None
+
+    parts = [int(part) for part in match.group(1).split(".")]
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts)
 
 
 def _find_trigger(evidence, service):
@@ -91,8 +107,8 @@ def _find_trigger(evidence, service):
     )
     seconds = latest.get("seconds_before_detection", 0)
 
-    current = _version_number(latest.get("version"))
-    previous = _version_number(latest.get("previous_version"))
+    current = parse_version(latest.get("version"))
+    previous = parse_version(latest.get("previous_version"))
     is_rollback = (
         current is not None and previous is not None and current < previous
     )
@@ -213,7 +229,7 @@ def _score_dependency(name, info, p95):
     if unreachable / total >= 0.5:
         score += 0.2
         support.append(f"Order Service could not connect to {name}.")
-    results.append((f"{name} is down", name, score, support, against))
+    results.append((f"{name} is down", "down", name, score, support, against))
 
     # ---------- Cause 2: the dependency is returning errors ----------
     score, support, against = 0.0, [], []
@@ -235,7 +251,7 @@ def _score_dependency(name, info, p95):
         support.append("Responses are not unusually slow.")
     elif p95 is not None:
         against.append("Responses are very slow, which points away from plain errors.")
-    results.append((f"{name} is returning errors", name, score, support, against))
+    results.append((f"{name} is returning errors", "errors", name, score, support, against))
 
     # ---------- Cause 3: the dependency is too slow ----------
     score, support, against = 0.0, [], []
@@ -259,7 +275,7 @@ def _score_dependency(name, info, p95):
     if up == 0:
         score = max(0.0, score - 0.4)
         against.append(f"{name} is not reachable, so it cannot be 'just slow'.")
-    results.append((f"{name} is too slow (timeouts)", name, score, support, against))
+    results.append((f"{name} is too slow (timeouts)", "slow", name, score, support, against))
 
     return results
 
@@ -273,11 +289,12 @@ def _score_causes(evidence):
         scored.extend(_score_dependency(name, info, p95))
 
     ranked = []
-    for cause, service, value, support, against in sorted(
-        scored, key=lambda item: item[2], reverse=True
+    for cause, kind, service, value, support, against in sorted(
+        scored, key=lambda item: item[3], reverse=True
     ):
         ranked.append({
             "cause": cause,
+            "kind": kind,
             "service": service,
             "score": round(value, 2),
             "supporting_evidence": support,
@@ -354,6 +371,7 @@ def _legacy_investigation(incident):
         "observed_facts": observed,
         "ranked_causes": [],
         "likely_cause": likely_cause,
+        "cause_kind": None,
         "confidence": confidence,
         "trigger": None,
         "recommended_next_step": (
@@ -374,10 +392,12 @@ def investigate_incident(incident):
 
     if not ranked or ranked[0]["score"] < 0.4:
         likely_cause = "Insufficient evidence to name a cause."
+        kind = None
         confidence = "low"
         root_service = None
     else:
         likely_cause = ranked[0]["cause"]
+        kind = ranked[0]["kind"]
         confidence = _confidence(ranked)
         root_service = ranked[0]["service"]
 
@@ -405,6 +425,7 @@ def investigate_incident(incident):
         "observed_facts": _describe_facts(evidence),
         "ranked_causes": ranked,
         "likely_cause": likely_cause,
+        "cause_kind": kind,
         "confidence": confidence,
         "root_cause_service": root_service,
         "impacted_services": _impacted_services(root_service) if root_service else [],
