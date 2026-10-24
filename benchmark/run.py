@@ -465,9 +465,9 @@ def run_scenario(name, scenario, repeat):
     return record
 
 
-def save(record):
-    os.makedirs(os.path.dirname(RESULTS_FILE), exist_ok=True)
-    with open(RESULTS_FILE, "a", encoding="utf-8") as file:
+def save(record, path=RESULTS_FILE):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "a", encoding="utf-8") as file:
         file.write(json.dumps(record) + "\n")
 
 
@@ -485,6 +485,9 @@ def main(argv):
                         help="runs per scenario (default 3)")
     parser.add_argument("--only", default="",
                         help="comma-separated scenario names")
+    parser.add_argument("--results", default=RESULTS_FILE,
+                        help="file to append runs to (default "
+                             "benchmark/results/runs.jsonl)")
     parser.add_argument("--list", action="store_true",
                         help="list the scenarios and exit")
     args = parser.parse_args(argv)
@@ -515,7 +518,7 @@ def main(argv):
             for name in names:
                 record = run_scenario(name, SCENARIOS[name], repeat)
                 if record:
-                    save(record)
+                    save(record, args.results)
     except KeyboardInterrupt:
         log("stopped; finished runs are saved")
     finally:
@@ -524,7 +527,7 @@ def main(argv):
         write_env(original_env)
         set_env_values({VERSION_KEYS[s]: GOOD_VERSION for s in PORTS})
         compose("up", "-d", "controller")
-        log(f"done. Results: {os.path.relpath(RESULTS_FILE, ROOT)}. "
+        log(f"done. Results: {os.path.relpath(args.results, ROOT)}. "
             "Run python benchmark/report.py for the table.")
     return 0
 

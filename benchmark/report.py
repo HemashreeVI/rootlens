@@ -2,6 +2,7 @@
 
     python benchmark/report.py            print the table
     python benchmark/report.py --write    also save it to benchmark/RESULTS.md
+    python benchmark/report.py other.jsonl   report on a different results file
 """
 import json
 import os
@@ -215,9 +216,10 @@ def build_report(runs):
 
 
 def main(argv):
-    if not os.path.exists(RESULTS_FILE):
+    path = next((a for a in argv if a.endswith(".jsonl")), RESULTS_FILE)
+    if not os.path.exists(path):
         sys.exit("No results yet. Run python benchmark/run.py first.")
-    report = build_report(load())
+    report = build_report(load(path))
     print(report)
     if "--write" in argv:
         with open(REPORT_FILE, "w", encoding="utf-8", newline="\n") as file:
