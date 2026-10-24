@@ -33,6 +33,8 @@ jobs:
         run: |
           pip install httpx
           python controller/test_notify.py
+      - name: Run benchmark scoring tests
+        run: python benchmark/test_report.py
 
   build:
     runs-on: ubuntu-latest

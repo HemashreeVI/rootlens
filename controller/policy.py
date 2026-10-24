@@ -3,6 +3,7 @@
 This module only DECIDES. It never touches Docker or the network, which makes
 every rule easy to test.
 """
+import os
 import re
 
 # The only things the controller will ever be allowed to do.
@@ -17,7 +18,21 @@ ACCEPTED_TRIGGER_STRENGTHS = {"strong", "moderate"}
 
 MAX_ATTEMPTS_PER_INCIDENT = 2
 COOLDOWN_SECONDS = 60
-MAX_ACTIONS_PER_SERVICE_PER_HOUR = 3
+
+
+def _limit_setting(name, default):
+    """A positive whole number from the environment, or the default."""
+    try:
+        value = int(os.getenv(name, ""))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+# Only the benchmark raises this (it runs dozens of incidents an hour).
+MAX_ACTIONS_PER_SERVICE_PER_HOUR = _limit_setting(
+    "CONTROLLER_MAX_ACTIONS_PER_SERVICE_PER_HOUR", 3
+)
 
 # "v2", "v2.1", "1.10.3": an optional "v", then numbers separated by dots.
 VERSION_PATTERN = re.compile(r"^v?(\d+(?:\.\d+)*)$")
