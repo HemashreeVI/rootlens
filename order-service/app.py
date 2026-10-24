@@ -84,7 +84,7 @@ def dashboard():
 
 @app.get("/api/overview")
 async def api_overview():
-    return await build_overview(USER_SERVICE_URL, PAYMENT_SERVICE_URL)
+    return await build_overview()
 
 
 @app.get("/health")

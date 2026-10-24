@@ -4,31 +4,34 @@ import time
 
 import httpx
 
+import topology
+
 PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
 
+# Which app to show comes from services.yaml (see common/topology.py).
+ENTRY = topology.entry()
+_ENTRY_SELECTOR = 'endpoint="' + ENTRY["endpoint"] + '"'
+
 FAILURE_RATIO_QUERY = (
-    'sum(rate(rootlens_order_requests_total{endpoint="/orders",status=~"5.."}[1m]))'
-    ' / '
-    'sum(rate(rootlens_order_requests_total{endpoint="/orders"}[1m]))'
+    "sum(rate(" + ENTRY["requests_metric"] + "{" + _ENTRY_SELECTOR
+    + ',status=~"5.."}[1m]))'
+    + " / "
+    + "sum(rate(" + ENTRY["requests_metric"] + "{" + _ENTRY_SELECTOR + "}[1m]))"
 )
 
 P95_QUERY = (
-    'histogram_quantile(0.95, sum by (le) '
-    '(rate(rootlens_order_request_duration_seconds_bucket'
-    '{endpoint="/orders"}[1m])))'
+    "histogram_quantile(0.95, sum by (le) "
+    "(rate(" + ENTRY["latency_metric"] + "_bucket"
+    "{" + _ENTRY_SELECTOR + "}[1m])))"
 )
 
-RATE_QUERY = 'sum(rate(rootlens_order_requests_total{endpoint="/orders"}[1m]))'
+RATE_QUERY = (
+    "sum(rate(" + ENTRY["requests_metric"] + "{" + _ENTRY_SELECTOR + "}[1m]))"
+)
 
 DEPENDENCIES = {
-    "user-service": {
-        "metric": "rootlens_user_requests_total",
-        "endpoint": "/users/{user_id}",
-    },
-    "payment-service": {
-        "metric": "rootlens_payment_requests_total",
-        "endpoint": "/pay/{order_id}",
-    },
+    name: {"metric": info["requests_metric"], "endpoint": info["endpoint"]}
+    for name, info in topology.services().items()
 }
 
 
@@ -92,14 +95,24 @@ def _own_error_query(info):
 
 def _timeout_query(name):
     return (
-        'sum(rate(rootlens_order_dependency_failures_total'
+        "sum(rate(" + ENTRY["dependency_failures_metric"]
         + '{dependency="' + name + '",kind="timeout"}[1m]))'
     )
 
 
-async def build_overview(user_url, payment_url):
+def _display(name, info):
+    return {
+        "name": info.get("display_name") or name,
+        "role": info.get("role") or "",
+    }
+
+
+async def build_overview():
     """Everything the dashboard needs about live system health."""
-    urls = {"user-service": user_url, "payment-service": payment_url}
+    entry_name = ENTRY["service"]
+    urls = {
+        name: info.get("url") for name, info in topology.services().items()
+    }
 
     async with httpx.AsyncClient(timeout=3.0) as client:
         tasks = {
@@ -108,23 +121,24 @@ async def build_overview(user_url, payment_url):
             "rate": _instant(client, RATE_QUERY),
             "history_ratio": _range(client, FAILURE_RATIO_QUERY),
             "history_rate": _range(client, RATE_QUERY),
-            "order:up": _instant(client, 'up{job="order-service"}'),
+            "entry:up": _instant(client, 'up{job="' + entry_name + '"}'),
         }
         for name, info in DEPENDENCIES.items():
             tasks[name + ":up"] = _instant(client, 'up{job="' + name + '"}')
             tasks[name + ":err"] = _instant(client, _own_error_query(info))
             tasks[name + ":timeout"] = _instant(client, _timeout_query(name))
-            tasks[name + ":version"] = _version(client, urls[name])
+            if urls.get(name):
+                tasks[name + ":version"] = _version(client, urls[name])
 
         keys = list(tasks.keys())
         values = await asyncio.gather(*tasks.values())
         data = dict(zip(keys, values))
 
-    services = {"order-service": {"up": data["order:up"], "version": None}}
+    services = {entry_name: {"up": data["entry:up"], "version": None}}
     for name in DEPENDENCIES:
         services[name] = {
             "up": data[name + ":up"],
-            "version": data[name + ":version"],
+            "version": data.get(name + ":version"),
             "error_ratio": data[name + ":err"],
             "timeout_rate": data[name + ":timeout"],
         }
@@ -135,6 +149,17 @@ async def build_overview(user_url, payment_url):
         "p95_latency_seconds": data["p95"],
         "request_rate": data["rate"],
         "services": services,
+        "topology": {
+            "entry": entry_name,
+            "dependencies": topology.dependency_graph().get(entry_name, []),
+            "display": {
+                entry_name: _display(entry_name, ENTRY),
+                **{
+                    name: _display(name, info)
+                    for name, info in topology.services().items()
+                },
+            },
+        },
         "history": {
             "failure_ratio": data["history_ratio"],
             "request_rate": data["history_rate"],
@@ -612,6 +637,7 @@ const PAGES = [
     title: "How RootLens works", sub: "A short guide for first-time viewers" },
 ];
 
+// Fallback names; the live ones come from services.yaml via /api/overview.
 const SERVICES = {
   "order-service": { name: "Order service", role: "Front door: takes customer orders" },
   "user-service": { name: "User service", role: "Looks up the customer's account" },
@@ -675,7 +701,13 @@ function pct(x, digits) {
   if (x == null) return "—";
   return (x * 100).toFixed(digits == null ? 0 : digits) + "%";
 }
-function svcName(id) { return (SERVICES[id] && SERVICES[id].name) || id || "unknown"; }
+function topo() { return (S.overview && S.overview.topology) || {}; }
+function svcInfo(id) {
+  return (topo().display || {})[id] || SERVICES[id] || { name: id, role: "" };
+}
+function entryId() { return topo().entry || "order-service"; }
+function dependencyIds() { return topo().dependencies || ["user-service", "payment-service"]; }
+function svcName(id) { return (id && svcInfo(id).name) || id || "unknown"; }
 function byTimeDesc(key) { return function (a, b) { return (ts(b[key]) || 0) - (ts(a[key]) || 0); }; }
 function card(title, sub, body, extraClass) {
   return '<section class="card ' + (extraClass || "") + '"><div class="card-head"><h2>' + esc(title) + "</h2>" +
@@ -948,7 +980,7 @@ function serviceNode(id, s, kind) {
   }
   return '<div class="node ' + st.k + '"><div class="n-top"><span class="n-name">' + esc(svcName(id)) +
     '</span><span class="pill t-' + st.k + '">' + esc(st.label) + '</span></div><div class="n-role">' +
-    esc(SERVICES[id].role) + "</div>" + meta + "</div>";
+    esc(svcInfo(id).role) + "</div>" + meta + "</div>";
 }
 
 function serviceMap() {
@@ -956,11 +988,11 @@ function serviceMap() {
   const body = '<div class="flow">' +
     '<div class="customer">' + icon("user") + "Customer</div>" +
     '<div class="arrow">→</div>' +
-    '<div class="col">' + serviceNode("order-service", sv["order-service"], "order") + "</div>" +
+    '<div class="col">' + serviceNode(entryId(), sv[entryId()], "order") + "</div>" +
     '<div class="arrow">→</div>' +
-    '<div class="col">' + serviceNode("user-service", sv["user-service"]) + serviceNode("payment-service", sv["payment-service"]) + "</div>" +
+    '<div class="col">' + dependencyIds().map(function (id) { return serviceNode(id, sv[id]); }).join("") + "</div>" +
     "</div>" +
-    '<p class="small faint" style="margin:14px 0 0">Every order calls the user service and then the payment service. If either one fails, the order fails, so the order service shows as <b>Affected</b>.</p>';
+    '<p class="small faint" style="margin:14px 0 0">Every request to the ' + esc(svcName(entryId()).toLowerCase()) + " calls the services on the right. If any of them fails, the request fails, so the " + esc(svcName(entryId()).toLowerCase()) + " shows as <b>Affected</b>.</p>";
   return card("Services", "How a customer order moves through the system", body);
 }
 
@@ -1154,7 +1186,7 @@ function viewIncident(id) {
 /* ===================== Deployments ===================== */
 function viewDeployments() {
   const sv = (S.overview && S.overview.services) || {};
-  const current = ["user-service", "payment-service"].map(function (id) {
+  const current = dependencyIds().map(function (id) {
     const s = sv[id] || {};
     return '<div class="kpi"><div class="k-label">' + esc(svcName(id)) + '<span class="k-dot ' + serviceState(s).k + '"></span></div>' +
       '<div class="k-value">' + esc(s.version || "—") + '</div><div class="k-help">Version running right now</div></div>';

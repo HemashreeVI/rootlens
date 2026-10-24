@@ -1,13 +1,14 @@
 import json
 import re
 
-# The Order Service gives up waiting for a dependency after this long.
-TIMEOUT_SECONDS = 3.0
+import topology
+
+# Both come from services.yaml (see common/topology.py).
+# The entry service gives up waiting for a dependency after this long.
+TIMEOUT_SECONDS = float(topology.entry()["timeout_seconds"])
 
 # Who depends on whom. Used to work out which services are impacted.
-DEPENDENCY_GRAPH = {
-    "order-service": ["user-service", "payment-service"],
-}
+DEPENDENCY_GRAPH = topology.dependency_graph()
 
 # How close a deployment must be to the incident to count as a strong link.
 STRONG_SECONDS = 300

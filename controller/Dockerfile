@@ -9,13 +9,11 @@ COPY --from=dockercli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY controller/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY policy.py .
-COPY safety.py .
-COPY notify.py .
-COPY executor.py .
-COPY controller.py .
+# Shared with the other RootLens parts: what app to watch (services.yaml).
+COPY common/topology.py services.yaml ./
+COPY controller/policy.py controller/safety.py controller/notify.py controller/executor.py controller/controller.py ./
 
 CMD ["python", "-u", "controller.py"]

@@ -18,13 +18,19 @@ services:
       <<: *tracing
 
   detector:
-    build: ./detector
+    build:
+      context: .
+      dockerfile: detector/Dockerfile
+    volumes:
+      - ./services.yaml:/app/services.yaml:ro
     depends_on:
       - prometheus
       - order-service
 
   controller:
-    build: ./controller
+    build:
+      context: .
+      dockerfile: controller/Dockerfile
     environment:
       CONTROLLER_MODE: ${CONTROLLER_MODE:-dry-run}
       CONTROLLER_MAX_ACTIONS_PER_SERVICE_PER_HOUR: ${CONTROLLER_MAX_ACTIONS_PER_SERVICE_PER_HOUR:-3}
@@ -41,11 +47,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # The project folder, so it can read compose.yaml and update .env.
       - ./:/project
+      - ./services.yaml:/app/services.yaml:ro
     depends_on:
       - order-service
 
   order-service:
-    build: ./order-service
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
     ports:
       - "8002:8000"
     environment:
@@ -56,6 +65,7 @@ services:
       <<: *tracing
     volumes:
       - rootlens-data:/data
+      - ./services.yaml:/app/services.yaml:ro
     depends_on:
       - user-service
       - payment-service

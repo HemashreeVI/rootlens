@@ -21,7 +21,9 @@ import httpx
 
 import executor
 import notify
+import policy
 import safety
+import topology
 from policy import decide
 
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
@@ -317,11 +319,9 @@ def main():
         )
     print(f"Controller started in {MODE} mode.", flush=True)
     if MODE == "enforce":
-        print(
-            "ENFORCE: the robot may roll back or restart user-service and "
-            "payment-service on its own.",
-            flush=True,
-        )
+        for name in sorted(policy.ALLOWED_TARGETS):
+            actions = ", ".join(sorted(topology.allowed_actions(name)))
+            print(f"ENFORCE: the robot may {actions} on {name}.", flush=True)
 
     if os.getenv("TELEGRAM_BOT_TOKEN"):
         print("Notifications: Telegram token found.", flush=True)

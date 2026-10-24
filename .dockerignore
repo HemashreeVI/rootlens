@@ -1,0 +1,9 @@
+# Keep the build context small: three images build from the project root.
+.git
+.env
+.env.*
+docs/
+benchmark/results/
+**/__pycache__
+*.svg
+*.db

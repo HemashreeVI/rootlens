@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/prometheus-metrics-E6522C?logo=prometheus&logoColor=white" alt="Prometheus" />
   <img src="https://img.shields.io/badge/grafana-dashboards-F46800?logo=grafana&logoColor=white" alt="Grafana" />
   <img src="https://img.shields.io/badge/opentelemetry-traces-425CC7?logo=opentelemetry&logoColor=white" alt="OpenTelemetry" />
-  <img src="https://img.shields.io/badge/tests-118%20passing-2E9B63" alt="118 tests" />
+  <img src="https://img.shields.io/badge/tests-154%20passing-2E9B63" alt="154 tests" />
   <img src="https://img.shields.io/badge/status-working%20end%20to%20end-2E9B63" alt="Status" />
 </p>
 
@@ -168,20 +168,53 @@ docker compose logs -f controller    # watch it decide, roll back to v1 and veri
 
 Every step appears in the dashboard's audit log, including the times it chose **not** to act. Set it back to `dry-run` when you are done.
 
+## Point RootLens at another app
+
+Nothing about the three demo services is hard-coded in RootLens itself. The
+detector, investigator, controller and dashboard all read
+[`services.yaml`](services.yaml):
+
+```yaml
+entry:                      # the service customers call; its failures open incidents
+  service: order-service
+  requests_metric: rootlens_order_requests_total
+  endpoint: /orders
+  ...
+services:                   # the services behind it
+  payment-service:
+    requests_metric: rootlens_payment_requests_total
+    endpoint: /pay/{order_id}
+    version_env: PAYMENT_SERVICE_VERSION
+    actions: [rollback_deployment, restart_service]
+dependencies:
+  order-service: [user-service, payment-service]
+```
+
+Each service lists the actions the robot may take on it. The file can only
+choose from actions RootLens has code for, so editing it can narrow what the
+robot does but never widen it. Leave `actions` out and RootLens will diagnose
+that service but always hand it to a human. The file is checked when each part
+starts, and a mistake (an unknown service in `dependencies`, a rollback with no
+`version_env`) stops it with a clear error instead of running half-configured.
+
+After editing it, restart the RootLens parts: `docker compose restart detector controller order-service`.
+
 ## Tests and CI
 
 ```powershell
-python .\order-service\test_investigator.py
-python .\controller\test_policy.py
-python .\controller\test_safety.py
+pip install httpx pyyaml
+python .\run_tests.py
 ```
 
-118 unit tests across six files cover the investigator, the rulebook, the safety checks, the executor, the controller loop and notifications. The rulebook and safety checks are pure functions with no Docker or network access, so every rule can be tested on its own. GitHub Actions runs two jobs on every push: `test` runs all six test files, and `build` validates the compose file and builds every image.
+154 unit tests across nine files cover the config reader, the detector, the investigator, the rulebook, the safety checks, the executor, the controller loop, notifications and the benchmark's scoring. None of them need Docker or a network. GitHub Actions runs two jobs on every push: `test` runs `run_tests.py`, and `build` validates the compose file and builds every image.
 
 ## Project layout
 
 ```
 RootLens/
+├── services.yaml            what RootLens watches (services, metrics, allowed actions)
+├── common/topology.py       reads and checks services.yaml for every part
+├── run_tests.py             runs every test file
 ├── logo.svg, banner.svg, architecture.svg   images used by this README
 ├── user-service/            FastAPI service with chaos switches
 ├── payment-service/         FastAPI service with chaos switches

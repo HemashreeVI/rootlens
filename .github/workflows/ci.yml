@@ -13,28 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Run detector tests
-        run: |
-          pip install httpx
-          python detector/test_detector.py
-      - name: Run investigator tests
-        run: python order-service/test_investigator.py
-      - name: Run policy tests
-        run: python controller/test_policy.py
-      - name: Run safety tests
-        run: python controller/test_safety.py
-      - name: Run executor tests
-        run: |
-          pip install httpx
-          python controller/test_executor.py
-      - name: Run controller tests
-        run: python controller/test_controller.py
-      - name: Run notification tests
-        run: |
-          pip install httpx
-          python controller/test_notify.py
-      - name: Run benchmark scoring tests
-        run: python benchmark/test_report.py
+      - name: Install test dependencies
+        run: pip install httpx pyyaml
+      - name: Run all tests
+        run: python run_tests.py
 
   build:
     runs-on: ubuntu-latest

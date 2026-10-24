@@ -1,3 +1,5 @@
+import copy
+
 from policy import ALLOWED_ACTIONS, decide, is_allowed, parse_version
 
 
@@ -219,6 +221,32 @@ def test_cause_kind_comes_from_the_field_not_the_wording():
     missing = diagnosis()
     missing.pop("cause_kind")
     assert decide(missing)["decision"] == "escalate"
+
+
+def with_actions(actions, check):
+    """Run check() as if services.yaml allowed only these on payment-service."""
+    import topology
+    saved = topology._cached
+    t = copy.deepcopy(topology.get())
+    t["services"]["payment-service"]["actions"] = actions
+    topology._cached = t
+    try:
+        check()
+    finally:
+        topology._cached = saved
+
+
+def test_config_without_rollback_restarts_instead():
+    def check():
+        d = decide(diagnosis(trig=trigger()))
+        assert d["action"] == "restart_service"
+    with_actions(["restart_service"], check)
+
+
+def test_config_with_no_actions_escalates():
+    def check():
+        assert decide(diagnosis(trig=trigger()))["decision"] == "escalate"
+    with_actions([], check)
 
 
 if __name__ == "__main__":

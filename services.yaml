@@ -1,0 +1,38 @@
+# What RootLens watches. Point RootLens at a different app by editing this file.
+#
+# entry: the service customers call. Its failure ratio opens incidents.
+# services: the services behind it. RootLens collects evidence about each one,
+#   and may act on a service only through the actions listed for it.
+# dependencies: who calls whom, used to work out which services are impacted.
+
+entry:
+  service: order-service                # also its Prometheus job name
+  requests_metric: rootlens_order_requests_total
+  endpoint: /orders
+  latency_metric: rootlens_order_request_duration_seconds
+  dependency_failures_metric: rootlens_order_dependency_failures_total
+  timeout_seconds: 3                    # how long it waits for a dependency
+  display_name: Order service
+  role: "Front door: takes customer orders"
+
+services:
+  user-service:
+    requests_metric: rootlens_user_requests_total
+    endpoint: /users/{user_id}
+    url: http://user-service:8000       # where its /version endpoint lives
+    version_env: USER_SERVICE_VERSION   # the .env key that pins its release
+    display_name: User service
+    role: Looks up the customer's account
+    actions: [rollback_deployment, restart_service]
+
+  payment-service:
+    requests_metric: rootlens_payment_requests_total
+    endpoint: /pay/{order_id}
+    url: http://payment-service:8000
+    version_env: PAYMENT_SERVICE_VERSION
+    display_name: Payment service
+    role: Charges the customer's payment
+    actions: [rollback_deployment, restart_service]
+
+dependencies:
+  order-service: [user-service, payment-service]

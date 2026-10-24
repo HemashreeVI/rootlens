@@ -6,9 +6,12 @@ every rule easy to test.
 import os
 import re
 
-# The only things the controller will ever be allowed to do.
-ALLOWED_ACTIONS = {"rollback_deployment", "restart_service"}
-ALLOWED_TARGETS = {"user-service", "payment-service"}
+import topology
+
+# The only things the controller will ever be allowed to do. Each service in
+# services.yaml lists which of these may be used on it; the rest are refused.
+ALLOWED_ACTIONS = set(topology.KNOWN_ACTIONS)
+ALLOWED_TARGETS = topology.controllable()
 
 # The kinds of cause the investigator can name.
 CAUSE_KINDS = {"down", "errors", "slow"}
@@ -46,7 +49,7 @@ OTHER_SERVICE_SCORE = 0.6
 
 def is_allowed(action, service):
     """The allowlist check. The executor must call this too."""
-    return action in ALLOWED_ACTIONS and service in ALLOWED_TARGETS
+    return action in ALLOWED_ACTIONS and action in topology.allowed_actions(service)
 
 
 def _decision(kind, reason, action=None, service=None, target_version=None):
@@ -144,7 +147,7 @@ def decide(diagnosis, attempts=None, service_actions_last_hour=0):
     if not root or not (diagnosis.get("ranked_causes") or []):
         return _escalate("The investigation did not name a clear cause.")
 
-    if root not in ALLOWED_TARGETS:
+    if not topology.allowed_actions(root):
         return _escalate(f"{root} is not a service the controller may act on.")
 
     confidence = diagnosis.get("confidence")
@@ -192,7 +195,7 @@ def decide(diagnosis, attempts=None, service_actions_last_hour=0):
     target, why_not = _rollback_target(trigger, root)
 
     for action in LADDER:
-        if action in tried:
+        if action in tried or not is_allowed(action, root):
             continue
 
         if action == "rollback_deployment":

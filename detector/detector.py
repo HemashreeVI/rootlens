@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 import httpx
 
+import topology
+
 PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
 
@@ -16,36 +18,35 @@ OKS_TO_RESOLVE = 3         # healthy checks in a row before resolving
 # Deployments older than this are not included as evidence.
 RECENT_DEPLOY_WINDOW_SECONDS = 1800
 
-FINGERPRINT = "order-service:error_ratio"
+# Which app to watch comes from services.yaml (see common/topology.py).
+ENTRY = topology.entry()
+ENTRY_SELECTOR = 'endpoint="' + ENTRY["endpoint"] + '"'
 
-# The failure fraction of Order requests: this is what triggers incidents.
+FINGERPRINT = ENTRY["service"] + ":error_ratio"
+
+# The failure fraction of entry requests: this is what triggers incidents.
 QUERY = (
-    'sum(rate(rootlens_order_requests_total{endpoint="/orders",status=~"5.."}[1m]))'
-    ' / '
-    'sum(rate(rootlens_order_requests_total{endpoint="/orders"}[1m]))'
+    "sum(rate(" + ENTRY["requests_metric"] + "{" + ENTRY_SELECTOR
+    + ',status=~"5.."}[1m]))'
+    + " / "
+    + "sum(rate(" + ENTRY["requests_metric"] + "{" + ENTRY_SELECTOR + "}[1m]))"
 )
 
-# Every service the Order Service depends on, and where its own metrics live.
+# Every service behind the entry, and where its own metrics live.
 DEPENDENCIES = {
-    "user-service": {
-        "metric": "rootlens_user_requests_total",
-        "endpoint": "/users/{user_id}",
-    },
-    "payment-service": {
-        "metric": "rootlens_payment_requests_total",
-        "endpoint": "/pay/{order_id}",
-    },
+    name: {"metric": info["requests_metric"], "endpoint": info["endpoint"]}
+    for name, info in topology.services().items()
 }
 
 ORDER_STATUS_QUERY = (
-    'sum by (status) '
-    '(rate(rootlens_order_requests_total{endpoint="/orders"}[1m]))'
+    "sum by (status) "
+    "(rate(" + ENTRY["requests_metric"] + "{" + ENTRY_SELECTOR + "}[1m]))"
 )
 
 ORDER_P95_QUERY = (
-    'histogram_quantile(0.95, sum by (le) '
-    '(rate(rootlens_order_request_duration_seconds_bucket'
-    '{endpoint="/orders"}[1m])))'
+    "histogram_quantile(0.95, sum by (le) "
+    "(rate(" + ENTRY["latency_metric"] + "_bucket"
+    "{" + ENTRY_SELECTOR + "}[1m])))"
 )
 
 
@@ -90,7 +91,7 @@ def collect_dependency(name, info):
     )
 
     kinds_query = (
-        'sum by (kind) (rate(rootlens_order_dependency_failures_total'
+        "sum by (kind) (rate(" + ENTRY["dependency_failures_metric"]
         + '{dependency="' + name + '"}[1m]))'
     )
 
@@ -170,10 +171,13 @@ def open_incident(value):
     response = httpx.post(
         f"{ORDER_SERVICE_URL}/incidents",
         json={
-            "service": "order-service",
-            "endpoint": "/orders",
+            "service": ENTRY["service"],
+            "endpoint": ENTRY["endpoint"],
             "fingerprint": FINGERPRINT,
-            "message": f"Order failure ratio {value:.2f} is above {THRESHOLD}",
+            "message": (
+                f"{ENTRY.get('display_name', ENTRY['service'])} failure "
+                f"ratio {value:.2f} is above {THRESHOLD}"
+            ),
             "evidence": evidence
         },
         timeout=5.0

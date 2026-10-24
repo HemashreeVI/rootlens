@@ -22,6 +22,7 @@ import time
 
 import httpx
 
+import topology
 from policy import is_allowed, parse_version
 
 PROJECT_DIR = os.getenv("PROJECT_DIR", "/project")
@@ -30,9 +31,11 @@ ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
 COMMAND_TIMEOUT_SECONDS = 120
 READY_TIMEOUT_SECONDS = 30
 
+# The .env key that pins each service's release, from services.yaml.
 VERSION_KEYS = {
-    "user-service": "USER_SERVICE_VERSION",
-    "payment-service": "PAYMENT_SERVICE_VERSION",
+    name: info["version_env"]
+    for name, info in topology.services().items()
+    if info.get("version_env")
 }
 
 

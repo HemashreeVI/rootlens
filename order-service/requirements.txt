@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 httpx
+pyyaml
 prometheus-client
 opentelemetry-distro==0.66b1
 opentelemetry-exporter-otlp==1.45.1
