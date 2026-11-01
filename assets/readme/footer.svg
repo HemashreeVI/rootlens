@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" width="1200" height="260" role="img" aria-labelledby="foot-t foot-d">
+<title id="foot-t">RootLens</title>
+<desc id="foot-d">Production reliability, with a human in the loop. Built by Hemashree.</desc>
+<style>
+.serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif}.sans{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace}
+.twinkle{animation:tw 4s ease-in-out infinite}@keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
+.pulse{animation:pl 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pl{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+.spin{animation:sp 60s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.spinr{animation:sr 40s linear infinite}@keyframes sr{to{transform:rotate(-360deg)}}
+.float{animation:fl 6s ease-in-out infinite}@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fadein{animation:fi 1.2s ease-out both}@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+<defs>
+<radialGradient id="foot-bg" cx="70%" cy="30%" r="90%"><stop offset="0" stop-color="#24133D"/><stop offset=".55" stop-color="#130B20"/><stop offset="1" stop-color="#0A0612"/></radialGradient>
+<radialGradient id="foot-glowA" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7A3FC2" stop-opacity=".5"/><stop offset="1" stop-color="#7A3FC2" stop-opacity="0"/></radialGradient>
+<radialGradient id="foot-glowB" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#EBD9A8" stop-opacity=".14"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></radialGradient>
+<linearGradient id="foot-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#F7EDD2"/><stop offset="1" stop-color="#EBD9A8"/></linearGradient>
+<linearGradient id="foot-rule" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#EBD9A8" stop-opacity="0"/><stop offset=".25" stop-color="#EBD9A8" stop-opacity=".85"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></linearGradient>
+<pattern id="foot-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#EBD9A8" stroke-opacity=".05"/></pattern>
+</defs>
+<rect x="1" y="1" width="1198" height="258" rx="22" fill="url(#foot-bg)" stroke="#2E1D49"/>
+<rect x="1" y="1" width="1198" height="258" rx="22" fill="url(#foot-grid)"/>
+<ellipse cx="600" cy="195" rx="420" ry="182" fill="url(#foot-glowA)"/>
+<ellipse cx="600" cy="65" rx="300" ry="130" fill="url(#foot-glowB)"/>
+<circle class="twinkle" cx="296" cy="140" r="1.2" fill="#F3EEF8" style="animation-delay:3.7s"/><circle class="twinkle" cx="570" cy="148" r="0.8" fill="#F3EEF8" style="animation-delay:3.6s"/><circle class="twinkle" cx="564" cy="141" r="1" fill="#F3EEF8" style="animation-delay:4.0s"/><circle class="twinkle" cx="566" cy="204" r="1.6" fill="#F3EEF8" style="animation-delay:1.6s"/><circle class="twinkle" cx="1019" cy="71" r="1" fill="#F3EEF8" style="animation-delay:3.5s"/><circle class="twinkle" cx="627" cy="183" r="0.8" fill="#F3EEF8" style="animation-delay:0.6s"/><circle class="twinkle" cx="1131" cy="29" r="0.8" fill="#F3EEF8" style="animation-delay:3.3s"/><circle class="twinkle" cx="333" cy="151" r="1.6" fill="#F3EEF8" style="animation-delay:2.9s"/><circle class="twinkle" cx="1088" cy="107" r="1.6" fill="#F3EEF8" style="animation-delay:3.9s"/><circle class="twinkle" cx="176" cy="100" r="0.8" fill="#F3EEF8" style="animation-delay:0.5s"/><circle class="twinkle" cx="272" cy="232" r="1.6" fill="#F3EEF8" style="animation-delay:3.1s"/><circle class="twinkle" cx="1012" cy="113" r="1.6" fill="#F3EEF8" style="animation-delay:2.3s"/><circle class="twinkle" cx="640" cy="110" r="1" fill="#F3EEF8" style="animation-delay:3.6s"/><circle class="twinkle" cx="811" cy="224" r="1.2" fill="#F3EEF8" style="animation-delay:4.0s"/><circle class="twinkle" cx="799" cy="56" r="1.2" fill="#F3EEF8" style="animation-delay:3.9s"/><circle class="twinkle" cx="1069" cy="145" r="1" fill="#F3EEF8" style="animation-delay:2.5s"/><circle class="twinkle" cx="1166" cy="79" r="0.8" fill="#F3EEF8" style="animation-delay:0.3s"/><circle class="twinkle" cx="1011" cy="238" r="0.8" fill="#F3EEF8" style="animation-delay:1.4s"/><circle class="twinkle" cx="97" cy="217" r="0.8" fill="#F3EEF8" style="animation-delay:1.2s"/><circle class="twinkle" cx="912" cy="212" r="0.8" fill="#F3EEF8" style="animation-delay:2.4s"/><circle class="twinkle" cx="903" cy="103" r="1.2" fill="#F3EEF8" style="animation-delay:2.2s"/><circle class="twinkle" cx="1089" cy="81" r="1" fill="#F3EEF8" style="animation-delay:4.0s"/><circle class="twinkle" cx="379" cy="37" r="0.8" fill="#F3EEF8" style="animation-delay:3.8s"/><circle class="twinkle" cx="1147" cy="84" r="1.2" fill="#F3EEF8" style="animation-delay:0.6s"/><circle class="twinkle" cx="69" cy="211" r="1.2" fill="#F3EEF8" style="animation-delay:1.4s"/><circle class="twinkle" cx="180" cy="210" r="1.6" fill="#F3EEF8" style="animation-delay:1.8s"/>
+<text x="600" y="58" class="mono" font-size="12" fill="#EBD9A8" text-anchor="middle" letter-spacing="3">PRODUCTION RELIABILITY, WITH A HUMAN IN THE LOOP.</text>
+<text x="600" y="150" class="serif" font-size="80" font-style="italic" text-anchor="middle" fill="url(#foot-metal)" letter-spacing="2">RootLens</text>
+<rect x="380" y="176" width="440" height="1.2" fill="url(#foot-rule)"/>
+<text x="600" y="214" class="sans" font-size="15" fill="#D3C8E2" text-anchor="middle" >Built by Hemashree · github.com/HemashreeVI</text>
+</svg>

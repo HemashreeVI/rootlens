@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" width="1200" height="440" role="img" aria-labelledby="hero-t hero-d">
+<title id="hero-t">RootLens: Reliability · Aiops · Human In The Loop</title>
+<desc id="hero-d">Finds out why a microservice broke, and fixes it only within strict limits. Built with FastAPI, Docker, Prometheus, Grafana, OpenTelemetry, Jaeger. 118 unit tests passing; 3 causes scored per dependency; 2 approved fixes only</desc>
+<style>
+.serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif}.sans{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace}
+.twinkle{animation:tw 4s ease-in-out infinite}@keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
+.pulse{animation:pl 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pl{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+.spin{animation:sp 60s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.spinr{animation:sr 40s linear infinite}@keyframes sr{to{transform:rotate(-360deg)}}
+.float{animation:fl 6s ease-in-out infinite}@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fadein{animation:fi 1.2s ease-out both}@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+<defs>
+<radialGradient id="hero-bg" cx="70%" cy="30%" r="90%"><stop offset="0" stop-color="#24133D"/><stop offset=".55" stop-color="#130B20"/><stop offset="1" stop-color="#0A0612"/></radialGradient>
+<radialGradient id="hero-glowA" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7A3FC2" stop-opacity=".5"/><stop offset="1" stop-color="#7A3FC2" stop-opacity="0"/></radialGradient>
+<radialGradient id="hero-glowB" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#EBD9A8" stop-opacity=".14"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></radialGradient>
+<linearGradient id="hero-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#F7EDD2"/><stop offset="1" stop-color="#EBD9A8"/></linearGradient>
+<linearGradient id="hero-rule" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#EBD9A8" stop-opacity="0"/><stop offset=".25" stop-color="#EBD9A8" stop-opacity=".85"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></linearGradient>
+<pattern id="hero-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#EBD9A8" stroke-opacity=".05"/></pattern>
+</defs>
+<rect x="1" y="1" width="1198" height="438" rx="22" fill="url(#hero-bg)" stroke="#2E1D49"/>
+<rect x="1" y="1" width="1198" height="438" rx="22" fill="url(#hero-grid)"/>
+<ellipse cx="936" cy="176" rx="420" ry="308" fill="url(#hero-glowA)"/>
+<ellipse cx="264" cy="264" rx="300" ry="220" fill="url(#hero-glowB)"/>
+<defs><linearGradient id="hero-sheen" gradientUnits="userSpaceOnUse" x1="-300" y1="0" x2="-60" y2="0">
+<stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+<animateTransform attributeName="gradientTransform" type="translate" values="0 0;1100 0;1100 0" keyTimes="0;.45;1" dur="7s" repeatCount="indefinite"/>
+</linearGradient></defs>
+<circle class="twinkle" cx="1140" cy="244" r="1.6" fill="#F3EEF8" style="animation-delay:2.6s"/><circle class="twinkle" cx="369" cy="237" r="1.6" fill="#F3EEF8" style="animation-delay:2.8s"/><circle class="twinkle" cx="130" cy="267" r="1.2" fill="#F3EEF8" style="animation-delay:2.6s"/><circle class="twinkle" cx="1171" cy="103" r="1" fill="#F3EEF8" style="animation-delay:0.2s"/><circle class="twinkle" cx="695" cy="75" r="0.8" fill="#F3EEF8" style="animation-delay:3.7s"/><circle class="twinkle" cx="467" cy="119" r="0.8" fill="#F3EEF8" style="animation-delay:2.5s"/><circle class="twinkle" cx="668" cy="198" r="1.6" fill="#F3EEF8" style="animation-delay:0.5s"/><circle class="twinkle" cx="798" cy="45" r="1" fill="#F3EEF8" style="animation-delay:2.1s"/><circle class="twinkle" cx="229" cy="90" r="1.6" fill="#F3EEF8" style="animation-delay:2.9s"/><circle class="twinkle" cx="439" cy="283" r="0.8" fill="#F3EEF8" style="animation-delay:2.3s"/><circle class="twinkle" cx="21" cy="247" r="0.8" fill="#F3EEF8" style="animation-delay:2.1s"/><circle class="twinkle" cx="134" cy="219" r="1.2" fill="#F3EEF8" style="animation-delay:1.9s"/><circle class="twinkle" cx="451" cy="225" r="1.6" fill="#F3EEF8" style="animation-delay:2.7s"/><circle class="twinkle" cx="812" cy="105" r="1.2" fill="#F3EEF8" style="animation-delay:3.2s"/><circle class="twinkle" cx="562" cy="24" r="1.2" fill="#F3EEF8" style="animation-delay:0.6s"/><circle class="twinkle" cx="312" cy="24" r="1" fill="#F3EEF8" style="animation-delay:0.1s"/><circle class="twinkle" cx="982" cy="365" r="1" fill="#F3EEF8" style="animation-delay:3.1s"/><circle class="twinkle" cx="124" cy="390" r="1.2" fill="#F3EEF8" style="animation-delay:2.4s"/><circle class="twinkle" cx="481" cy="307" r="1.6" fill="#F3EEF8" style="animation-delay:2.6s"/><circle class="twinkle" cx="645" cy="264" r="0.8" fill="#F3EEF8" style="animation-delay:2.6s"/><circle class="twinkle" cx="796" cy="73" r="1" fill="#F3EEF8" style="animation-delay:2.7s"/><circle class="twinkle" cx="651" cy="248" r="0.8" fill="#F3EEF8" style="animation-delay:0.2s"/><circle class="twinkle" cx="811" cy="214" r="0.8" fill="#F3EEF8" style="animation-delay:2.0s"/><circle class="twinkle" cx="73" cy="342" r="1" fill="#F3EEF8" style="animation-delay:3.1s"/><circle class="twinkle" cx="1097" cy="401" r="0.8" fill="#F3EEF8" style="animation-delay:3.9s"/><circle class="twinkle" cx="490" cy="309" r="1" fill="#F3EEF8" style="animation-delay:0.8s"/><circle class="twinkle" cx="147" cy="146" r="1" fill="#F3EEF8" style="animation-delay:3.9s"/><circle class="twinkle" cx="876" cy="65" r="1" fill="#F3EEF8" style="animation-delay:1.7s"/><circle class="twinkle" cx="1109" cy="306" r="1" fill="#F3EEF8" style="animation-delay:3.1s"/><circle class="twinkle" cx="1107" cy="135" r="0.8" fill="#F3EEF8" style="animation-delay:3.8s"/><circle class="twinkle" cx="242" cy="38" r="1.6" fill="#F3EEF8" style="animation-delay:2.1s"/><circle class="twinkle" cx="350" cy="262" r="1" fill="#F3EEF8" style="animation-delay:3.4s"/><circle class="twinkle" cx="674" cy="402" r="1.6" fill="#F3EEF8" style="animation-delay:3.5s"/><circle class="twinkle" cx="946" cy="304" r="1.6" fill="#F3EEF8" style="animation-delay:1.3s"/><circle class="twinkle" cx="459" cy="69" r="1.6" fill="#F3EEF8" style="animation-delay:2.3s"/><circle class="twinkle" cx="136" cy="201" r="1.6" fill="#F3EEF8" style="animation-delay:4.0s"/><circle class="twinkle" cx="737" cy="204" r="1" fill="#F3EEF8" style="animation-delay:2.1s"/><circle class="twinkle" cx="999" cy="28" r="1.6" fill="#F3EEF8" style="animation-delay:0.3s"/><circle class="twinkle" cx="53" cy="124" r="1" fill="#F3EEF8" style="animation-delay:3.6s"/><circle class="twinkle" cx="493" cy="74" r="1.6" fill="#F3EEF8" style="animation-delay:3.6s"/>
+<line x1="60" y1="64" x2="92" y2="64" stroke="#EBD9A8"/>
+<text x="104" y="68" class="mono" font-size="12" fill="#EBD9A8" text-anchor="start" letter-spacing="3">RELIABILITY · AIOPS · HUMAN IN THE LOOP</text>
+<g class="fadein">
+<text x="56" y="160" class="serif" font-size="92" fill="url(#hero-metal)" text-anchor="start" letter-spacing="4">RootLens</text>
+<text x="56" y="160" class="serif" font-size="92" fill="url(#hero-sheen)" text-anchor="start" letter-spacing="4" opacity=".55">RootLens</text>
+</g>
+<rect x="60" y="186" width="560" height="1.5" fill="url(#hero-rule)"/>
+<circle cx="60" cy="187" r="3" fill="#fff"><animate attributeName="cx" values="60;620;60" dur="9s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.9;1" dur="9s" repeatCount="indefinite"/></circle>
+<text x="60" y="236" class="serif" font-size="22" fill="#F7EDD2" text-anchor="start" font-style="italic">Finds out why a microservice broke, and fixes it only</text><text x="60" y="266" class="serif" font-size="22" fill="#F7EDD2" text-anchor="start" font-style="italic">within strict limits.</text>
+<rect x="60" y="318" width="69" height="24" rx="12" fill="#1A0F2C" stroke="#45306B"/><text x="71" y="334" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" >FastAPI</text><rect x="137" y="318" width="62" height="24" rx="12" fill="#1A0F2C" stroke="#45306B"/><text x="148" y="334" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" >Docker</text><rect x="207" y="318" width="89" height="24" rx="12" fill="#1A0F2C" stroke="#45306B"/><text x="218" y="334" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" >Prometheus</text><rect x="304" y="318" width="69" height="24" rx="12" fill="#1A0F2C" stroke="#45306B"/><text x="315" y="334" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" >Grafana</text><rect x="381" y="318" width="109" height="24" rx="12" fill="#1A0F2C" stroke="#45306B"/><text x="392" y="334" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" >OpenTelemetry</text><rect x="499" y="318" width="62" height="24" rx="12" fill="#1A0F2C" stroke="#45306B"/><text x="510" y="334" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" >Jaeger</text>
+<line x1="60" y1="362" x2="720" y2="362" stroke="#2E1D49"/>
+<text x="60" y="392" class="serif" font-size="26" fill="#F3EEF8" text-anchor="start" >118</text><text x="60" y="414" class="sans" font-size="12" fill="#9E92B6" text-anchor="start" >unit tests passing</text><text x="290" y="392" class="serif" font-size="26" fill="#F3EEF8" text-anchor="start" >3</text><text x="290" y="414" class="sans" font-size="12" fill="#9E92B6" text-anchor="start" >causes scored per dependency</text><text x="520" y="392" class="serif" font-size="26" fill="#F3EEF8" text-anchor="start" >2</text><text x="520" y="414" class="sans" font-size="12" fill="#9E92B6" text-anchor="start" >approved fixes only</text>
+<ellipse cx="930" cy="200" rx="250" ry="210" fill="url(#hero-glowA)"/>
+<circle cx="930" cy="200" r="168" fill="none" stroke="#EBD9A8" stroke-opacity=".2"/>
+<g class="spin" style="transform-origin:930px 200px">
+<circle cx="930" cy="200" r="140" fill="none" stroke="#EBD9A8" stroke-opacity=".6" stroke-width="1.2" stroke-dasharray="2 10"/>
+<circle cx="1070" cy="200" r="4" fill="#F7EDD2"/></g>
+<g class="spinr" style="transform-origin:930px 200px">
+<circle cx="930" cy="200" r="112" fill="none" stroke="#F7EDD2" stroke-opacity=".35" stroke-dasharray="40 14"/>
+<circle cx="818" cy="200" r="3" fill="#EBD9A8"/></g>
+<circle class="pulse" cx="801" cy="92" r="3.5" fill="#F7EDD2"/><text x="791" y="96" class="mono" font-size="11" fill="#D3C8E2" text-anchor="end" letter-spacing="2">DETECT</text><circle class="pulse" cx="1068" cy="104" r="3.5" fill="#F7EDD2"/><text x="1078" y="108" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" letter-spacing="2">RANK</text><circle class="pulse" cx="1059" cy="308" r="3.5" fill="#F7EDD2"/><text x="1069" y="312" class="mono" font-size="11" fill="#D3C8E2" text-anchor="start" letter-spacing="2">ACT</text><circle class="pulse" cx="785" cy="284" r="3.5" fill="#F7EDD2"/><text x="775" y="288" class="mono" font-size="11" fill="#D3C8E2" text-anchor="end" letter-spacing="2">VERIFY</text>
+<g class="float">
+<circle cx="930" cy="200" r="78" fill="#0A0612" fill-opacity=".75" stroke="url(#hero-metal)" stroke-width="2"/>
+<circle cx="930" cy="200" r="66" fill="none" stroke="#EBD9A8" stroke-opacity=".35"/>
+<text x="930" y="234" class="serif" font-size="96" fill="url(#hero-metal)" text-anchor="middle" font-style="italic">R</text>
+</g>
+<text x="1140" y="414" class="mono" font-size="11" fill="#6A5E85" text-anchor="end" letter-spacing="1.5">github.com/HemashreeVI/rootlens</text>
+
+</svg>

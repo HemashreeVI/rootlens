@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 258" width="1200" height="258" role="img" aria-labelledby="tbl-t tbl-d">
+<title id="tbl-t">The Investigator</title>
+<desc id="tbl-d">Cause: Down, Main signals: up metric is 0, no metrics reported, most failures are “unreachable”; Cause: Returning errors, Main signals: service is up, own error ratio high, failures are errors, p95 normal; Cause: Too slow, Main signals: service is up, failures are timeouts, p95 close to the caller's timeout</desc>
+<style>
+.serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif}.sans{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace}
+.twinkle{animation:tw 4s ease-in-out infinite}@keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
+.pulse{animation:pl 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pl{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+.spin{animation:sp 60s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.spinr{animation:sr 40s linear infinite}@keyframes sr{to{transform:rotate(-360deg)}}
+.float{animation:fl 6s ease-in-out infinite}@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fadein{animation:fi 1.2s ease-out both}@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+<defs>
+<radialGradient id="tbl-bg" cx="70%" cy="30%" r="90%"><stop offset="0" stop-color="#24133D"/><stop offset=".55" stop-color="#130B20"/><stop offset="1" stop-color="#0A0612"/></radialGradient>
+<radialGradient id="tbl-glowA" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7A3FC2" stop-opacity=".5"/><stop offset="1" stop-color="#7A3FC2" stop-opacity="0"/></radialGradient>
+<radialGradient id="tbl-glowB" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#EBD9A8" stop-opacity=".14"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></radialGradient>
+<linearGradient id="tbl-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#F7EDD2"/><stop offset="1" stop-color="#EBD9A8"/></linearGradient>
+<linearGradient id="tbl-rule" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#EBD9A8" stop-opacity="0"/><stop offset=".25" stop-color="#EBD9A8" stop-opacity=".85"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></linearGradient>
+<pattern id="tbl-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#EBD9A8" stroke-opacity=".05"/></pattern>
+</defs>
+<rect x="1" y="1" width="1198" height="256" rx="22" fill="url(#tbl-bg)" stroke="#2E1D49"/>
+<rect x="1" y="1" width="1198" height="256" rx="22" fill="url(#tbl-grid)"/>
+<ellipse cx="960" cy="77" rx="420" ry="181" fill="url(#tbl-glowA)"/>
+<ellipse cx="240" cy="181" rx="300" ry="129" fill="url(#tbl-glowB)"/><rect x="40" y="40" width="1120" height="178" rx="14" fill="#1A0F2C" stroke="#45306B"/><text x="58" y="70" class="mono" font-size="11" fill="#EBD9A8" text-anchor="start" letter-spacing="2">CAUSE</text><text x="304" y="70" class="mono" font-size="11" fill="#EBD9A8" text-anchor="start" letter-spacing="2">MAIN SIGNALS</text><rect x="40" y="86" width="1120" height="1.2" fill="url(#tbl-rule)"/><text x="58" y="114" class="serif" font-size="16" fill="#F3EEF8" text-anchor="start" >Down</text><text x="304" y="114" class="mono" font-size="13" fill="#D3C8E2" text-anchor="start" >up metric is 0, no metrics reported, most failures are “unreachable”</text><line x1="58" y1="130" x2="1142" y2="130" stroke="#2E1D49"/><text x="58" y="158" class="serif" font-size="16" fill="#F3EEF8" text-anchor="start" >Returning errors</text><text x="304" y="158" class="mono" font-size="13" fill="#D3C8E2" text-anchor="start" >service is up, own error ratio high, failures are errors, p95 normal</text><line x1="58" y1="174" x2="1142" y2="174" stroke="#2E1D49"/><text x="58" y="202" class="serif" font-size="16" fill="#F3EEF8" text-anchor="start" >Too slow</text><text x="304" y="202" class="mono" font-size="13" fill="#D3C8E2" text-anchor="start" >service is up, failures are timeouts, p95 close to the caller's timeout</text>
+</svg>

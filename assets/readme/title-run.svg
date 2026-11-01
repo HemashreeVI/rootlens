@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 104" width="1200" height="104" role="img" aria-labelledby="t05-t t05-d">
+<title id="t05-t">05 Run It: Try it yourself.</title>
+<desc id="t05-d">SETUP · USAGE</desc>
+<style>
+.serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif}.sans{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace}
+.twinkle{animation:tw 4s ease-in-out infinite}@keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
+.pulse{animation:pl 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pl{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+.spin{animation:sp 60s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.spinr{animation:sr 40s linear infinite}@keyframes sr{to{transform:rotate(-360deg)}}
+.float{animation:fl 6s ease-in-out infinite}@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fadein{animation:fi 1.2s ease-out both}@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+<defs>
+<radialGradient id="t05-bg" cx="70%" cy="30%" r="90%"><stop offset="0" stop-color="#24133D"/><stop offset=".55" stop-color="#130B20"/><stop offset="1" stop-color="#0A0612"/></radialGradient>
+<radialGradient id="t05-glowA" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7A3FC2" stop-opacity=".5"/><stop offset="1" stop-color="#7A3FC2" stop-opacity="0"/></radialGradient>
+<radialGradient id="t05-glowB" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#EBD9A8" stop-opacity=".14"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></radialGradient>
+<linearGradient id="t05-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#F7EDD2"/><stop offset="1" stop-color="#EBD9A8"/></linearGradient>
+<linearGradient id="t05-rule" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#EBD9A8" stop-opacity="0"/><stop offset=".25" stop-color="#EBD9A8" stop-opacity=".85"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></linearGradient>
+<pattern id="t05-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#EBD9A8" stroke-opacity=".05"/></pattern>
+</defs>
+<text x="30" y="32" class="mono" font-size="12" fill="#F3EEF8" text-anchor="start" letter-spacing="3">05</text>
+<text x="58" y="32" class="mono" font-size="12" fill="#EBD9A8" text-anchor="start" letter-spacing="3">RUN IT</text>
+<text x="1170" y="32" class="mono" font-size="11" fill="#9E92B6" text-anchor="end" letter-spacing="3">SETUP · USAGE</text>
+<text x="30" y="80" class="serif" font-size="40" fill="#F3EEF8">Try it <tspan fill="#EBD9A8" font-style="italic">yourself.</tspan></text>
+<rect x="30" y="96" width="1140" height="1.2" fill="url(#t05-rule)"/>
+<circle cy="96.6" r="2.6" fill="#fff"><animate attributeName="cx" values="30;1170" dur="6s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.8;1" dur="6s" repeatCount="indefinite"/></circle>
+</svg>

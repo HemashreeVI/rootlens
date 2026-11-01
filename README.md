@@ -1,47 +1,24 @@
 <p align="center">
-  <img src="logo.svg" alt="RootLens logo" width="150" />
+  <img src="./assets/readme/hero.svg" width="100%" alt="RootLens: Finds out why a microservice broke, and fixes it only within strict limits.">
 </p>
 
 <p align="center">
-  <img src="banner.svg" alt="RootLens: production reliability, with a human in the loop" width="100%" />
+  <img src="https://img.shields.io/badge/FastAPI-EBD9A8?style=for-the-badge" alt="FastAPI"> <img src="https://img.shields.io/badge/Docker-EBD9A8?style=for-the-badge" alt="Docker"> <img src="https://img.shields.io/badge/Prometheus-EBD9A8?style=for-the-badge" alt="Prometheus"> <img src="https://img.shields.io/badge/Grafana-EBD9A8?style=for-the-badge" alt="Grafana"> <img src="https://img.shields.io/badge/OpenTelemetry-EBD9A8?style=for-the-badge" alt="OpenTelemetry"> <img src="https://img.shields.io/badge/Jaeger-EBD9A8?style=for-the-badge" alt="Jaeger">
 </p>
 
-<p align="center">
-  <a href="https://github.com/HemashreeVI/RootLens/actions/workflows/ci.yml"><img src="https://github.com/HemashreeVI/RootLens/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
-  <img src="https://img.shields.io/badge/python-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
-  <img src="https://img.shields.io/badge/prometheus-metrics-E6522C?logo=prometheus&logoColor=white" alt="Prometheus" />
-  <img src="https://img.shields.io/badge/grafana-dashboards-F46800?logo=grafana&logoColor=white" alt="Grafana" />
-  <img src="https://img.shields.io/badge/opentelemetry-traces-425CC7?logo=opentelemetry&logoColor=white" alt="OpenTelemetry" />
-  <img src="https://img.shields.io/badge/tests-118%20passing-2E9B63" alt="118 tests" />
-  <img src="https://img.shields.io/badge/status-working%20end%20to%20end-2E9B63" alt="Status" />
-</p>
+<img src="./assets/readme/title-features.svg" width="100%" alt="01 Features: What it does.">
+<img src="./assets/readme/features.svg" width="100%" alt="RootLens features">
 
-<p align="center">
-  <b>RootLens watches a small microservice app, works out why it broke, and fixes it only within strict limits.</b>
-</p>
+<img src="./assets/readme/title-flow.svg" width="100%" alt="02 On Call: What an engineer would do.">
+<img src="./assets/readme/flow.svg" width="100%" alt="Detect → Collect → Rank → Impact → Fix → Verify → Escalate">
 
-<p align="center">
-  <a href="docs/launch-video.mp4"><img src="docs/launch-video.jpg" alt="Watch the 20-second RootLens launch video" width="82%" /></a>
-  <br />
-  <sub>▶ <a href="docs/launch-video.mp4"><b>Watch the 20-second launch video</b></a> (opens in GitHub's video player)</sub>
-</p>
+<img src="./assets/readme/title-table.svg" width="100%" alt="03 The Investigator: Down, broken, or slow?">
+<img src="./assets/readme/table.svg" width="100%" alt="The Investigator">
 
----
+<img src="./assets/readme/title-stack.svg" width="100%" alt="04 Tech stack: The tools behind it.">
+<img src="./assets/readme/stack.svg" width="100%" alt="RootLens tech stack">
 
-## What it does
-
-When a service fails, RootLens follows the same steps an on-call engineer would:
-
-1. **Detect** the failure from live metrics.
-2. **Collect evidence** (error rates, latency, which dependency is down or slow, and whether a release went out just before).
-3. **Rank root causes** with a confidence level, instead of guessing one answer.
-4. **Estimate impact** across the services that depend on the broken one.
-5. **Pick an approved fix** (rollback or restart) through a restricted controller.
-6. **Verify recovery**, and record every decision.
-7. **Escalate to a human** when the evidence is not strong enough.
-
-> Every stage works end to end. In a live enforce-mode test, RootLens detected a bad `payment-service` release, traced it to that deploy, rolled it back on its own, and confirmed the failures stopped.
+<img src="./assets/readme/title-run.svg" width="100%" alt="05 Run it: Try it yourself.">
 
 ## Architecture
 
@@ -61,21 +38,6 @@ When a service fails, RootLens follows the same steps an on-call engineer would:
 | `jaeger` | 16686 | Distributed tracing. The three services send OpenTelemetry traces, so one slow order can be followed across every service. |
 | SQLite | volume | `/data/incidents.db` in the `rootlens-data` volume. Holds incidents, deployments and the audit log. |
 
-## How the investigator decides
-
-For every dependency that is failing, the investigator scores three possible causes and reports them ranked, with the evidence for and against each.
-
-| Cause | Main signals |
-|---|---|
-| **Down** | The `up` metric is 0, no metrics reported, most failures are "unreachable". |
-| **Returning errors** | Service is up, its own error ratio is high, most failures are errors, p95 latency is normal. |
-| **Too slow** | Service is up, most failures are timeouts, p95 latency is close to the caller's timeout. |
-
-From Order's point of view, a dead dependency and a slow one both look like timeouts. The `up` metric is what tells them apart.
-
-**Bad releases:** if the failing service was deployed shortly before the failures started, the investigator links the incident to that release and names the earlier version to go back to.
-
-Confidence is **high** when the top score is at least 0.75 and leads the runner-up by 0.3 or more, **medium** when the top score is at least 0.5, and **low** otherwise. Below 0.4 the answer is "insufficient evidence". The output also names the root-cause service and the services it impacts.
 
 ## Incident lifecycle
 
@@ -92,6 +54,7 @@ stateDiagram-v2
     Resolved --> Healthy
     Open --> Open: same fingerprint, no duplicate
 ```
+
 
 ## Quick start
 
@@ -114,6 +77,7 @@ You should see 8 containers running. Then open:
 | Jaeger (traces) | http://localhost:16686 |
 
 > Never run `docker compose down -v`. It deletes the incident database volume.
+
 
 ## Try it: the failure lab
 
@@ -138,6 +102,7 @@ Invoke-RestMethod -Method Post "http://localhost:8003/chaos/reset"
 
 The detector log prints `RESOLVE incident` once traffic has been healthy for 3 checks. Wait about a minute before the next test so the 1-minute metrics window clears.
 
+
 ## Try it: bad release and rollback
 
 Each service reads `SERVICE_VERSION` and exposes `/version`. Only `v2` contains a bug.
@@ -152,6 +117,7 @@ Each service reads `SERVICE_VERSION` and exposes `/version`. Only `v2` contains 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\deploy.ps1 payment-service v2
 ```
+
 
 ## Try it: let the robot fix it
 
@@ -168,6 +134,7 @@ docker compose logs -f controller    # watch it decide, roll back to v1 and veri
 
 Every step appears in the dashboard's audit log, including the times it chose **not** to act. Set it back to `dry-run` when you are done.
 
+
 ## Tests and CI
 
 ```powershell
@@ -177,6 +144,7 @@ python .\controller\test_safety.py
 ```
 
 118 unit tests across six files cover the investigator, the rulebook, the safety checks, the executor, the controller loop and notifications. The rulebook and safety checks are pure functions with no Docker or network access, so every rule can be tested on its own. GitHub Actions runs two jobs on every push: `test` runs all six test files, and `build` validates the compose file and builds every image.
+
 
 ## Project layout
 
@@ -206,6 +174,7 @@ RootLens/
 └── .github/workflows/ci.yml
 ```
 
+
 ## Roadmap
 
 - [x] Three FastAPI services with Docker Compose
@@ -227,17 +196,6 @@ RootLens/
 - [ ] Kubernetes
 - [ ] Later: LLM-written explanations grounded in evidence, PostgreSQL, API authentication, Grafana persistence, a latency-based detector, an experiment results table
 
-## Safety design
-
-The controller has Docker access, which is powerful. These limits keep it contained:
-
-- **Allowlist:** only `rollback_deployment` and `restart_service`, on `user-service` and `payment-service`.
-- **Rate limits:** at most 2 actions per incident, 60 s apart, and 3 per service per hour.
-- **Dry-run first:** the controller can be switched between `off`, `dry-run` and `enforce`. Any unknown setting means `off`.
-- **Pre-flight checks:** before acting it confirms the incident is under 30 minutes old, the service is still failing, and the rollback target really is an earlier version.
-- **Verify, then trust:** after acting, it needs 3 healthy checks in a row within 2 minutes, and escalates if not.
-- **Audit log:** every decision is recorded, including "chose not to act".
-- **Human escalation:** medium or low confidence, or more than one dependency failing, means no action.
 
 ## Honest notes
 
@@ -246,6 +204,6 @@ The controller has Docker access, which is powerful. These limits keep it contai
 - The controller mounts the Docker socket. That is fine on one laptop, but a real system would use a narrower permission.
 - Slowness that stays under the 3 s timeout is not detected yet.
 
-## Author
-
-Built by **Hemashree** ([@HemashreeVI](https://github.com/HemashreeVI)) as a hands-on project in production reliability and AI-assisted operations.
+<p align="center">
+  <img src="./assets/readme/footer.svg" width="100%" alt="Production reliability, with a human in the loop. Built by Hemashree.">
+</p>

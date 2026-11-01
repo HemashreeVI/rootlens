@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 570" width="1200" height="570" role="img" aria-labelledby="feat-t feat-d">
+<title id="feat-t">RootLens features</title>
+<desc id="feat-d">Allowlist: Only rollback and restart, only on user-service and payment-service.; Rate limits: 2 actions per incident, 60 s apart, 3 per service per hour.; Dry-run first: off, dry-run and enforce. Any unknown setting means off.; Pre-flight checks: Incident is fresh, still failing, and the target is an earlier version.; Verify, then trust: 3 healthy checks in a row within 2 minutes, or it escalates.; Audit log: Every decision is recorded, including “chose not to act”.; Human escalation: Medium or low confidence, or several failing dependencies: no action.; Change correlation: Links a failure to a release that went out just before it.; Tracing: OpenTelemetry and Jaeger follow one slow order across every service.</desc>
+<style>
+.serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif}.sans{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace}
+.twinkle{animation:tw 4s ease-in-out infinite}@keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
+.pulse{animation:pl 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pl{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+.spin{animation:sp 60s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.spinr{animation:sr 40s linear infinite}@keyframes sr{to{transform:rotate(-360deg)}}
+.float{animation:fl 6s ease-in-out infinite}@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fadein{animation:fi 1.2s ease-out both}@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+<defs>
+<radialGradient id="feat-bg" cx="70%" cy="30%" r="90%"><stop offset="0" stop-color="#24133D"/><stop offset=".55" stop-color="#130B20"/><stop offset="1" stop-color="#0A0612"/></radialGradient>
+<radialGradient id="feat-glowA" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7A3FC2" stop-opacity=".5"/><stop offset="1" stop-color="#7A3FC2" stop-opacity="0"/></radialGradient>
+<radialGradient id="feat-glowB" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#EBD9A8" stop-opacity=".14"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></radialGradient>
+<linearGradient id="feat-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#F7EDD2"/><stop offset="1" stop-color="#EBD9A8"/></linearGradient>
+<linearGradient id="feat-rule" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#EBD9A8" stop-opacity="0"/><stop offset=".25" stop-color="#EBD9A8" stop-opacity=".85"/><stop offset="1" stop-color="#EBD9A8" stop-opacity="0"/></linearGradient>
+<pattern id="feat-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#EBD9A8" stroke-opacity=".05"/></pattern>
+</defs>
+<rect x="1" y="1" width="1198" height="568" rx="22" fill="url(#feat-bg)" stroke="#2E1D49"/>
+<rect x="1" y="1" width="1198" height="568" rx="22" fill="url(#feat-grid)"/>
+<ellipse cx="240" cy="171" rx="420" ry="399" fill="url(#feat-glowA)"/>
+<ellipse cx="960" cy="399" rx="300" ry="285" fill="url(#feat-glowB)"/><rect x="40" y="40" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="74" cy="76" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="74" y="82" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >☰</text>
+<text x="102" y="82" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Allowlist</text>
+<text x="62" y="122" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >Only rollback and restart, only on</text><text x="62" y="142" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >user-service and payment-service.</text>
+<rect x="62" y="176" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="6s" repeatCount="indefinite"/></rect><rect x="420" y="40" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="454" cy="76" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="454" y="82" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >◷</text>
+<text x="482" y="82" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Rate limits</text>
+<text x="442" y="122" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >2 actions per incident, 60 s apart, 3 per</text><text x="442" y="142" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >service per hour.</text>
+<rect x="442" y="176" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="7s" repeatCount="indefinite"/></rect><rect x="800" y="40" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="834" cy="76" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="834" y="82" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >◐</text>
+<text x="862" y="82" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Dry-run first</text>
+<text x="822" y="122" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >off, dry-run and enforce. Any unknown setting</text><text x="822" y="142" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >means off.</text>
+<rect x="822" y="176" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="8s" repeatCount="indefinite"/></rect><rect x="40" y="210" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="74" cy="246" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="74" y="252" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >✓</text>
+<text x="102" y="252" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Pre-flight checks</text>
+<text x="62" y="292" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >Incident is fresh, still failing, and the</text><text x="62" y="312" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >target is an earlier version.</text>
+<rect x="62" y="346" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="9s" repeatCount="indefinite"/></rect><rect x="420" y="210" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="454" cy="246" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="454" y="252" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >↺</text>
+<text x="482" y="252" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Verify, then trust</text>
+<text x="442" y="292" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >3 healthy checks in a row within 2 minutes, or</text><text x="442" y="312" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >it escalates.</text>
+<rect x="442" y="346" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="6s" repeatCount="indefinite"/></rect><rect x="800" y="210" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="834" cy="246" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="834" y="252" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >≡</text>
+<text x="862" y="252" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Audit log</text>
+<text x="822" y="292" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >Every decision is recorded, including “chose</text><text x="822" y="312" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >not to act”.</text>
+<rect x="822" y="346" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="7s" repeatCount="indefinite"/></rect><rect x="40" y="380" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="74" cy="416" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="74" y="422" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >⚑</text>
+<text x="102" y="422" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Human escalation</text>
+<text x="62" y="462" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >Medium or low confidence, or several failing</text><text x="62" y="482" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >dependencies: no action.</text>
+<rect x="62" y="516" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="8s" repeatCount="indefinite"/></rect><rect x="420" y="380" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="454" cy="416" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="454" y="422" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >⇄</text>
+<text x="482" y="422" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Change correlation</text>
+<text x="442" y="462" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >Links a failure to a release that went out</text><text x="442" y="482" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >just before it.</text>
+<rect x="442" y="516" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="9s" repeatCount="indefinite"/></rect><rect x="800" y="380" width="360" height="150" rx="16" fill="#1A0F2C" stroke="#45306B"/>
+<circle cx="834" cy="416" r="17" fill="#0A0612" stroke="#EBD9A8"/>
+<text x="834" y="422" class="sans" font-size="16" fill="#F7EDD2" text-anchor="middle" >⌁</text>
+<text x="862" y="422" class="serif" font-size="19" fill="#F3EEF8" text-anchor="start" >Tracing</text>
+<text x="822" y="462" class="sans" font-size="13" fill="#D3C8E2" text-anchor="start" >OpenTelemetry and Jaeger follow one slow order</text><text x="822" y="482" class="sans" font-size="13" fill="#9E92B6" text-anchor="start" >across every service.</text>
+<rect x="822" y="516" width="34" height="2" rx="1" fill="#EBD9A8"><animate attributeName="width" values="34;316;34" dur="6s" repeatCount="indefinite"/></rect>
+</svg>
