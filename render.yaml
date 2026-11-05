@@ -1,0 +1,11 @@
+# One-click public demo on Render (free plan). In Render: New + > Blueprint > pick this repo.
+# The normal way to run RootLens is still `docker compose up` (see the README).
+services:
+  - type: web
+    name: rootlens
+    runtime: docker
+    plan: free
+    dockerfilePath: ./demo/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true

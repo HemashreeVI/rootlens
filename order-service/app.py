@@ -1,5 +1,5 @@
-from fastapi import FastAPI
-from fastapi.responses import Response, JSONResponse, HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import Response, JSONResponse, HTMLResponse, RedirectResponse
 from prometheus_client import (
     Counter,
     Histogram,
@@ -31,6 +31,21 @@ from database import (
 from investigator import investigate_incident
 
 app = FastAPI(title="RootLens Order Service")
+
+# Hosted demo (demo/run.py): visitors can look at everything, but only the lab's
+# own processes, which talk over localhost, may change anything.
+HOSTED_DEMO = os.getenv("HOSTED_DEMO") == "1"
+LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+if HOSTED_DEMO:
+    @app.middleware("http")
+    async def public_read_only(request: Request, call_next):
+        external = (request.client.host if request.client else "") not in LOOPBACK
+        if external and request.url.path == "/":
+            return RedirectResponse("/dashboard", status_code=302)
+        if external and request.method not in ("GET", "HEAD", "OPTIONS"):
+            return JSONResponse({"detail": "This is a read-only public demo."}, status_code=403)
+        return await call_next(request)
 
 # Count requests handled by Order Service.
 REQUEST_COUNT = Counter(
@@ -78,9 +93,25 @@ def home():
     return {"message": "Hello from RootLens Order Service"}
 
 
+DEMO_BANNER = (
+    '<div style="background:#4f46e5;color:#fff;padding:10px 16px;font:500 14px/1.45 system-ui,sans-serif;text-align:center">'
+    'Live demo: a release train ships a buggy <b>payment-service v2</b> about every 20 minutes. '
+    'Watch RootLens detect it, find the cause and roll it back on its own (robot mode: enforce). '
+    'Read-only for visitors. <a style="color:#fff" href="https://github.com/HemashreeVI/rootlens">Source on GitHub</a></div>'
+)
+DASHBOARD_PAGE = DASHBOARD_HTML
+if HOSTED_DEMO:
+    # One container, no Grafana and no public Prometheus: hide those links.
+    DASHBOARD_PAGE = DASHBOARD_HTML.replace("<body>", "<body>" + DEMO_BANNER, 1).replace(
+        '<div class="row"><a id="link-grafana"', '<div class="row" hidden><a id="link-grafana"', 1).replace(
+        """Raw data: <a target="_blank" rel="noopener" href="http://' + esc(host) + ':3000">Grafana</a> · ' +
+      '<a target="_blank" rel="noopener" href="http://' + esc(host) + ':9090">Prometheus</a> · <a href="/incidents""",
+        """Raw data: <a href="/incidents""", 1)
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard():
-    return DASHBOARD_HTML
+    return DASHBOARD_PAGE
 
 @app.get("/api/overview")
 async def api_overview():

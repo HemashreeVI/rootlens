@@ -28,6 +28,12 @@ from policy import is_allowed
 PROJECT_DIR = os.getenv("PROJECT_DIR", "/project")
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
 
+# "compose" (default): act through docker compose.
+# "process": the single-container hosted demo (demo/run.py), where each service
+# is a plain process and demo/ctl.py asks the supervisor to recreate it.
+RUNTIME = os.getenv("EXECUTOR_RUNTIME", "compose").strip().lower()
+PROCESS_CTL = os.getenv("PROCESS_CTL", "/app/demo/ctl.py")
+
 COMMAND_TIMEOUT_SECONDS = 120
 READY_TIMEOUT_SECONDS = 30
 
@@ -50,8 +56,13 @@ def check_request(action, service, target_version=None):
     return None
 
 
-def build_command(action, service):
+def build_command(action, service, runtime="compose"):
     """The exact command to run. A list, never a shell string."""
+    if runtime == "process":
+        if action in ("rollback_deployment", "restart_service"):
+            verb = "recreate" if action == "rollback_deployment" else "restart"
+            return [sys.executable, PROCESS_CTL, verb, service]
+        raise ValueError(f"Unknown action: {action}")
     if action == "rollback_deployment":
         return ["docker", "compose", "up", "-d", "--no-deps", "--force-recreate", service]
     if action == "restart_service":
@@ -89,7 +100,8 @@ def _last_line(text):
 def read_version(service):
     """The version a service reports right now, or None if it cannot be reached."""
     try:
-        response = httpx.get(f"http://{service}:8000/version", timeout=3.0)
+        base = os.getenv(service.upper().replace("-", "_") + "_URL", f"http://{service}:8000")
+        response = httpx.get(f"{base}/version", timeout=3.0)
         return response.json().get("version")
     except Exception:
         return None
@@ -150,7 +162,7 @@ def _rollback(service, target, project_dir, runner, probe, recorder, ready_timeo
     except OSError as error:
         return _refused(f"could not update the release manifest (.env): {error}")
 
-    command = build_command("rollback_deployment", service)
+    command = build_command("rollback_deployment", service, RUNTIME)
     try:
         result = runner(command, project_dir)
     except Exception as error:
@@ -182,7 +194,7 @@ def _rollback(service, target, project_dir, runner, probe, recorder, ready_timeo
 
 
 def _restart(service, project_dir, runner, probe, ready_timeout):
-    command = build_command("restart_service", service)
+    command = build_command("restart_service", service, RUNTIME)
     try:
         result = runner(command, project_dir)
     except Exception as error:

@@ -192,6 +192,19 @@ def test_failed_restart_is_reported():
     assert result["outcome"] == "Execution failed: docker compose exited with code 1: boom"
 
 
+def test_process_runtime_uses_the_demo_supervisor():
+    # The hosted demo has no Docker: the same actions go through demo/ctl.py.
+    rollback = executor.build_command("rollback_deployment", "payment-service", "process")
+    restart = executor.build_command("restart_service", "user-service", "process")
+    assert rollback[1:] == [executor.PROCESS_CTL, "recreate", "payment-service"]
+    assert restart[1:] == [executor.PROCESS_CTL, "restart", "user-service"]
+    assert "docker" not in rollback and "docker" not in restart
+
+
+def test_compose_runtime_is_still_the_default():
+    assert executor.build_command("rollback_deployment", "payment-service")[:2] == ["docker", "compose"]
+
+
 if __name__ == "__main__":
     tests = [
         value for name, value in sorted(globals().items())

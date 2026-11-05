@@ -1,9 +1,10 @@
+import os
 import time
 import urllib.error
 import urllib.request
 from collections import Counter
 
-URL = "http://localhost:8002/orders"
+URL = os.getenv("TRAFFIC_URL", "http://localhost:8002/orders")
 INTERVAL = 0.2  # seconds between requests (about 5 per second)
 
 counts = Counter()

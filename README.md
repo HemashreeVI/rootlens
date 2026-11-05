@@ -182,6 +182,12 @@ flowchart TD
 | 12:27:54 | Resolved after 3 healthy checks. Total: **1 min 50 s** |
 
 
+## 🌐 Hosted demo
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/HemashreeVI/rootlens)
+
+A free web host gives you one container, so `demo/run.py` runs the whole lab as processes in a single image (`demo/Dockerfile`, `render.yaml`): Prometheus, the three services, the detector, traffic, and the controller in **enforce** mode. A release train ships the buggy `payment-service v2` about every 20 minutes (the rulebook allows 3 automatic actions per service per hour), and RootLens detects it, blames the release and rolls it back on its own. The executor's `process` runtime (`EXECUTOR_RUNTIME=process`) recreates the service through the supervisor instead of `docker compose`; the policy, safety checks and audit log are the same code. Visitors get a read-only view; no Grafana, Jaeger or notifications in this mode.
+
 ## Quick start
 
 You need Docker Desktop (WSL2), Git, Python 3 and PowerShell.
