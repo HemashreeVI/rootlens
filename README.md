@@ -56,6 +56,132 @@ stateDiagram-v2
 ```
 
 
+## 📸 Screenshots
+
+These come from a real run of the lab: payment-service `v2` was released at 12:25:02, and RootLens took it from there.
+
+| | |
+|---|---|
+| <img src="assets/screenshots/1-overview-something-wrong.png" alt="Overview: 52% of orders failing, RootLens checking"> | <img src="assets/screenshots/2-overview-problem-detected.png" alt="Overview: problem detected, steps 1 to 3 done"> |
+| **1. Something looks wrong.** 52% of orders fail. The detector is still counting checks before it opens an incident. | **2. Problem detected.** Detect, Investigate and Decide are done: payment-service is returning errors, so roll back to `v1`. |
+| <img src="assets/screenshots/3-incident-detail.png" alt="Incident detail with diagnosis and timeline"> | <img src="assets/screenshots/4-automation-decision-log.png" alt="Automation page with safety rules and decision log"> |
+| **3. Incident detail.** Diagnosis (score 1.00, high confidence), what changed (`v2`, 62 s before detection), every cause considered, and the timeline. | **4. Automation.** Robot mode, the safety rules, and the decision log: "Roll back Payment service to v1" (dry-run, so suggested only). |
+| <img src="assets/screenshots/5-deployments.png" alt="Deployments page"> | <img src="assets/screenshots/6-overview-healthy-again.png" alt="Overview: all systems healthy"> |
+| **5. Deployments.** Every release and rollback is recorded, which is what the change correlation reads. | **6. Healthy again.** After the rollback, three healthy checks resolve the incident. It lasted 1 min 50 s. |
+
+## 🧠 How it works
+
+RootLens does what an on-call engineer does, in the same order, every time:
+
+<img src="assets/explainer/1-five-step-loop.png" alt="Detect, Investigate, Decide, Act, Verify" width="100%">
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant P as Prometheus
+    participant D as detector
+    participant DB as SQLite
+    participant C as controller
+    participant X as executor (Docker)
+    loop every 10 s
+        D->>P: failure ratio of /orders over the last 1 min?
+    end
+    Note over D: 3 checks in a row at or above 0.3
+    D->>P: evidence: up, error ratio, timeouts, p95 per dependency
+    D->>DB: open incident + evidence + recent deployments
+    C->>DB: read open incident
+    Note over C: investigator ranks causes,<br/>change correlation finds the release
+    Note over C: rulebook (pure function): act, wait or escalate
+    alt enforce mode and every preflight check passes
+        C->>X: recreate payment-service on the previous version
+        X-->>C: done
+        C->>P: verify: 3 healthy checks in a row?
+        C->>DB: recovered, or escalate to a human
+    else dry-run, or not allowed
+        C->>DB: record the suggested action only
+    end
+    Note over D: 3 checks below 0.1, so the incident resolves
+```
+
+### The lab
+
+<img src="assets/explainer/2-architecture.png" alt="The lab: 8 containers" width="100%">
+
+Three FastAPI services form a tiny shop. `order-service` calls `user-service` and `payment-service` with a 3 s timeout on each. Every service has fault-injection switches (errors, latency), and each `v2` release carries a deliberately planted bug: `user-service v2` adds 4 s of latency, `payment-service v2` fails 50% of requests.
+
+### 1. Detect
+
+<img src="assets/explainer/3-detect.png" alt="Detect: hysteresis on the order failure ratio" width="100%">
+
+- Every 10 s the detector runs one PromQL query: the share of `/orders` requests that returned 5xx over the last minute.
+- It **opens** an incident after 3 checks in a row at or above **0.3**, and **resolves** only after 3 checks in a row below **0.1**. Two thresholds (hysteresis) stop an incident from flickering open and closed.
+- The moment it opens, it snapshots the evidence for each dependency: its `up` metric, its own error ratio, how calls to it failed (errors or timeouts), the p95 latency, and the deployments of the last 30 minutes.
+- Incidents have a fingerprint, so the same problem never creates a duplicate.
+
+### 2. Investigate
+
+<img src="assets/explainer/4-investigate.png" alt="Investigate: scoring causes" width="100%">
+
+For every dependency the investigator scores three possible causes from the evidence: **down**, **returning errors**, or **too slow**. Each piece of evidence adds or subtracts points, and you can see the reasons ("4 for, 0 against") in the UI.
+
+- **Confidence is high** only when the top cause scores at least **0.75** *and* beats the runner-up by at least **0.3**. In the real run: 1.00 vs 0.20, a gap of 0.80, so high.
+- **Blast radius:** it also lists which other services depend on the culprit (here, `order-service`).
+
+### What changed?
+
+<img src="assets/explainer/5-what-changed.png" alt="Change correlation" width="100%">
+
+Every release is recorded in `deployments`. A release up to **5 minutes** before detection is a **strong** link, up to **15 minutes** a **moderate** one. If the latest change was itself a rollback, RootLens never rolls back twice; it escalates instead.
+
+### 3. Decide: the rulebook
+
+<img src="assets/explainer/6-rulebook.png" alt="The rulebook" width="100%">
+
+`controller/policy.py` is a **pure function**: it never touches Docker or the network, so every rule is unit-tested.
+
+```mermaid
+flowchart TD
+    A[open incident + diagnosis] --> B{clear cause named?}
+    B -- no --> H[escalate to a human]
+    B -- yes --> C{target is user or payment service?}
+    C -- no --> H
+    C -- yes --> D{confidence high?}
+    D -- no --> H
+    D -- yes --> E{more than one service failing?}
+    E -- yes --> H
+    E -- no --> F{under 2 attempts for this incident<br/>and under 3 actions per service per hour?}
+    F -- no --> H
+    F -- yes --> G{last attempt less than 60 s ago?}
+    G -- yes --> W[wait]
+    G -- no --> R{recent release to undo,<br/>not itself a rollback, not tried yet?}
+    R -- yes --> RB[roll back to the previous version]
+    R -- no --> S{restart not tried yet?}
+    S -- yes --> RS[restart the service]
+    S -- no --> H
+```
+
+### 4 & 5. Act, then verify
+
+<img src="assets/explainer/7-act-and-verify.png" alt="Act and verify" width="100%">
+
+- **Modes:** `off` (does nothing), `dry-run` (decides and records, never acts) and `enforce`.
+- **Preflight checks** in enforce mode: is the incident recent (30 min or less)? Is it still failing right now? Is the bad version still the one running?
+- **`executor.py`** is the only code allowed to touch Docker. It recreates the service on the previous version.
+- **Verify:** 3 healthy checks in a row means recovered; otherwise it escalates to a human.
+- **Audit log:** every decision is recorded, including the decision *not* to act.
+
+### A real incident, start to finish
+
+| Time | What happened |
+|---|---|
+| 12:25:02 | `payment-service v2` released |
+| 12:26:04 | Incident opened: order failure ratio 0.52 (62 s after the release) |
+| 12:26:04 | Diagnosis: payment-service is returning errors, score 1.00 vs 0.20, high confidence, strong trigger |
+| 12:26:05 | Controller decides: roll back payment-service to `v1` (dry-run, so suggested) |
+| 12:26:50 | Rollback to `v1` |
+| 12:27:54 | Resolved after 3 healthy checks. Total: **1 min 50 s** |
+
+
 ## Quick start
 
 You need Docker Desktop (WSL2), Git, Python 3 and PowerShell.
