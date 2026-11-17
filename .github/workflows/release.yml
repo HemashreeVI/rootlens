@@ -1,0 +1,93 @@
+# Builds the Docker images, publishes them to GitHub Packages (ghcr.io) and creates a GitHub release.
+# Run it from Actions → Release → Run workflow (enter a version like 1.0.0), or push a tag:  git tag v1.0.0 && git push origin v1.0.0
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (e.g. 1.0.0)"
+        required: true
+        default: "1.0.0"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  VERSION: ${{ inputs.version || github.ref_name }}
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [{"name": "rootlens", "context": ".", "file": "demo/Dockerfile"}, {"name": "rootlens-order-service", "context": "order-service", "file": "order-service/Dockerfile"}, {"name": "rootlens-user-service", "context": "user-service", "file": "user-service/Dockerfile"}, {"name": "rootlens-payment-service", "context": "payment-service", "file": "payment-service/Dockerfile"}, {"name": "rootlens-detector", "context": "detector", "file": "detector/Dockerfile"}, {"name": "rootlens-controller", "context": "controller", "file": "controller/Dockerfile"}]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version without the leading v
+        run: echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Image labels (including org.opencontainers.image.source) link the package to this repo,
+      # so it shows under "Packages" on the repo page.
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/hemashreevi/${{ matrix.image.name }}
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
+
+  release:
+    needs: images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${VERSION#v}"
+          cat > notes.md <<'EOF'
+          ## Try it in one command
+
+          The whole lab (shop services, Prometheus, detector, controller and a release train that ships a buggy payment-service v2) in one container:
+
+          ```bash
+          docker run -p 10000:10000 ghcr.io/hemashreevi/rootlens:${VERSION}
+          ```
+
+          Then open http://localhost:10000/dashboard and watch RootLens detect the bad release, blame it and roll it back.
+
+          ## Images in this release
+
+          | Image | What it is |
+          |---|---|
+          | `ghcr.io/hemashreevi/rootlens` | all-in-one demo |
+          | `ghcr.io/hemashreevi/rootlens-order-service` | shop API + dashboard |
+          | `ghcr.io/hemashreevi/rootlens-user-service` | user service |
+          | `ghcr.io/hemashreevi/rootlens-payment-service` | payment service |
+          | `ghcr.io/hemashreevi/rootlens-detector` | incident detector |
+          | `ghcr.io/hemashreevi/rootlens-controller` | decide → act → verify controller |
+
+          For the full multi-container setup, clone the repo and run `docker compose up`.
+          EOF
+          sed -i "s/\${VERSION}/$VERSION/g" notes.md
+          gh release create "v$VERSION" --target "$GITHUB_SHA" --title "RootLens v$VERSION" --notes-file notes.md
