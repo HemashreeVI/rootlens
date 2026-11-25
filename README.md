@@ -6,6 +6,29 @@
   <img src="https://img.shields.io/badge/FastAPI-EBD9A8?style=for-the-badge" alt="FastAPI"> <img src="https://img.shields.io/badge/Docker-EBD9A8?style=for-the-badge" alt="Docker"> <img src="https://img.shields.io/badge/Prometheus-EBD9A8?style=for-the-badge" alt="Prometheus"> <img src="https://img.shields.io/badge/Grafana-EBD9A8?style=for-the-badge" alt="Grafana"> <img src="https://img.shields.io/badge/OpenTelemetry-EBD9A8?style=for-the-badge" alt="OpenTelemetry"> <img src="https://img.shields.io/badge/Jaeger-EBD9A8?style=for-the-badge" alt="Jaeger">
 </p>
 
+<h3 align="center">▶ Try it in one click</h3>
+
+<p align="center">
+  <a href="https://codespaces.new/HemashreeVI/rootlens?quickstart=1"><img src="https://github.com/codespaces/badge.svg" alt="Open in GitHub Codespaces"></a>
+  &nbsp;
+  <a href="https://render.com/deploy?repo=https://github.com/HemashreeVI/rootlens"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render"></a>
+</p>
+
+<p align="center"><sub><b>Codespaces:</b> the full lab (3 services, detector, controller, Prometheus, Grafana, Jaeger) builds and starts in your browser with fake customer traffic already running, and the incident dashboard opens on port 8002. Nothing to install.</sub></p>
+
+<details>
+<summary><b>🐳 Or run the all-in-one demo on your laptop with one Docker command</b></summary>
+
+```bash
+docker run --rm -p 10000:10000 ghcr.io/hemashreevi/rootlens:latest
+```
+
+Open http://localhost:10000/dashboard. A buggy release ships about every 20 minutes, and RootLens detects it, blames the release and rolls it back by itself. (Grafana and Jaeger are only in the full lab.)
+
+**macOS / Linux / Codespaces:** `./deploy.sh payment-service v2` is the bash version of `deploy.ps1` for the full lab below.
+
+</details>
+
 <img src="./assets/readme/title-features.svg" width="100%" alt="01 Features: What it does.">
 <img src="./assets/readme/features.svg" width="100%" alt="RootLens features">
 

@@ -1,0 +1,23 @@
+// Open RootLens in GitHub Codespaces (or VS Code Dev Containers) with one click.
+// On start it builds and runs the full lab (3 shop services, detector, controller, Prometheus,
+// Grafana, Jaeger), starts fake customer traffic, and opens the live incident dashboard.
+{
+  "name": "RootLens",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "hostRequirements": { "cpus": 4, "memory": "8gb" },
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "forwardPorts": [8002, 3000, 16686, 9090],
+  "portsAttributes": {
+    "8002": { "label": "Incident dashboard (/dashboard)", "onAutoForward": "openBrowser" },
+    "3000": { "label": "Grafana", "onAutoForward": "silent" },
+    "16686": { "label": "Jaeger traces", "onAutoForward": "silent" },
+    "9090": { "label": "Prometheus", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md"] },
+    "vscode": { "extensions": ["ms-python.python", "ms-azuretools.vscode-docker"] }
+  }
+}
