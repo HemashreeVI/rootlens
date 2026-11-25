@@ -3,10 +3,7 @@
 // Grafana, Jaeger), starts fake customer traffic, and opens the live incident dashboard.
 {
   "name": "RootLens",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  },
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
   "hostRequirements": { "cpus": 4, "memory": "8gb" },
   "postStartCommand": "bash .devcontainer/start.sh",
   "forwardPorts": [8002, 3000, 16686, 9090],
